@@ -38,8 +38,12 @@ dl, dt, dd { margin: 0; }
   justify-content: space-between;
   padding: 32px var(--pad-x) 72px;
   position: relative;
+  z-index: 1;
   overflow: hidden;
 }
+
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the box only holds its place */
 
 /* ---------- Captions: Martian Mono ---------- */
 .label, .links a, .cue, .unit, .rail-l, .rail-r {
@@ -94,7 +98,6 @@ dl, dt, dd { margin: 0; }
 .hero .headline { opacity: clamp(0, calc(1.5 - var(--ap) * 1.7), 1); }
 .hero .display .line:nth-child(1) { translate: calc(var(--p) * 10vw) 0; }
 .hero .display .line:nth-child(2) { translate: calc(var(--p) * -10vw) 0; }
-.hero .foot { opacity: clamp(0, calc(1.6 - var(--ap) * 2), 1); }
 
 .foot {
   display: flex;
@@ -122,11 +125,12 @@ dl, dt, dd { margin: 0; }
   line-height: 0.9;
   letter-spacing: -0.06em;
   text-transform: uppercase;
+  --tint: color-mix(in srgb, var(--accent) 82%, #fff);
+  color: color-mix(in srgb, var(--tint) calc(var(--c, 0) * 100%), #fff);
 }
 .name .fit { display: inline-block; white-space: nowrap; font-size: clamp(72px, 15vw, 260px); }
 .name .ch { display: inline-block; will-change: translate; }   /* translate is set from scroll */
 
-.planet .bar { opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
 .data {
   position: relative;
   z-index: 2;
@@ -136,14 +140,10 @@ dl, dt, dd { margin: 0; }
   padding-top: 24px;
   border-top: 1px solid var(--rule);
 }
-.planet .data {
-  opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1);
-  translate: 0 calc(var(--p) * 9vh);
-}
 .data dt { margin-bottom: 14px; }
 .data dd { font-size: clamp(26px, 3.4vw, 50px); }
 
-/* ---------- Planet discs: flat colour, halftone shadow ---------- */
+/* ---------- Planet discs: flat fallback; the GL layer draws the real thing ---------- */
 .disc {
   --w: max(10px, calc(var(--r, 1) * var(--d)));
   position: absolute;
@@ -166,46 +166,13 @@ dl, dt, dd { margin: 0; }
   overflow: hidden;
   background: var(--accent);
 }
-/* halftone terminator: a dot screen in the page colour, fading in toward the lower right */
-.disc .body::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 50%, var(--bg) 0 30%, transparent 34%) 0 0 / calc(var(--w) / 34) calc(var(--w) / 34);
-  -webkit-mask-image: radial-gradient(circle at 26% 24%, transparent 36%, #000 94%);
-          mask-image: radial-gradient(circle at 26% 24%, transparent 36%, #000 94%);
-}
-.disc.tiny .body::after { display: none; }
-
-/* orbit hairline around every planet except Saturn */
-.disc:not(.ringed)::before {
-  content: '';
-  position: absolute;
-  inset: calc(-1 * max(10px, var(--w) * 0.09));
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
-}
-
-/* Saturn: back half behind the planet, front half over it. Page-colour gaps keep the lines legible on the disc. */
-.disc .ring {
-  --line: color-mix(in srgb, var(--accent) 35%, #fff);
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 208%;
-  height: 54%;
-  translate: -50% -50%;
-  rotate: -16deg;
-  border-radius: 50%;
-  background:
-    radial-gradient(closest-side, transparent 60%, var(--line) 61% 65%, transparent 66% 71%, var(--line) 72% 74.5%, transparent 75.5%),
-    radial-gradient(closest-side, transparent 57%, var(--bg) 58% 78%, transparent 79%);
-}
-.disc .ring.back { z-index: 0; }
-.disc .ring.front { z-index: 2; clip-path: inset(50% 0 0 0); }
+/* ---------- One-shot reveal (data row, bars, method) ---------- */
+.planet .data, .planet .bar, .method-body { opacity: 0; translate: 0 32px; transition: opacity .7s ease, translate .7s ease; }
+.planet .data { transition-delay: .2s; }
+.planet.in .data, .planet.in .bar, .method.in .method-body { opacity: 1; translate: 0 0; }
 
 /* ---------- Method ---------- */
-.method-body { max-width: 640px; opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); translate: 0 calc(var(--p) * 9vh); }
+.method-body { max-width: 640px; }
 .display.small { font-size: clamp(56px, 8vw, 120px); margin-bottom: 32px; }
 .method li {
   list-style: none;
@@ -250,7 +217,7 @@ dl, dt, dd { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .display .line > span { transition: none; }
+  .display .line > span, .planet .data, .planet .bar, .method-body { transition: none; }
 }
 
 /* ---------- Small screens ---------- */
