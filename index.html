@@ -7,7 +7,7 @@
   <meta name="description" content="A scroll through the solar system at honest scale. Distances, days and temperatures from NASA fact sheets.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;800;900&family=Instrument+Serif&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,15 +26,18 @@
 
     <div class="headline">
       <p class="label kicker">Eight worlds · 4.5 billion km · one scroll</p>
-      <h1 class="display">The Sun<br><em>to Neptune</em></h1>
+      <h1 class="display">
+        <span class="line"><span>The Sun</span></span>
+        <span class="line"><span><em>to Neptune</em></span></span>
+      </h1>
     </div>
 
     <footer class="foot">
       <p class="intro">A scroll through the solar system at honest scale. Distances, days and temperatures from NASA fact sheets.</p>
       <dl class="stats">
-        <div><dt class="label">Planets</dt><dd>8</dd></div>
-        <div><dt class="label">Known moons</dt><dd>288</dd></div>
-        <div><dt class="label">Light to Neptune</dt><dd class="accent">4h 10m</dd></div>
+        <div><dt class="label">Planets</dt><dd><span class="num">8</span></dd></div>
+        <div><dt class="label">Known moons</dt><dd><span class="num">288</span></dd></div>
+        <div><dt class="label">Light to Neptune</dt><dd class="accent"><span class="num-text">4h 10m</span></dd></div>
       </dl>
     </footer>
   </section>
