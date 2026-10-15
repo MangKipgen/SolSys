@@ -160,7 +160,7 @@ html.no-gl .lineup { display: none; }
   position: relative;
   z-index: 1;
   /* fills the space up to the planet; rings are free to run over the last letters */
-  width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 1.2);
+  width: calc(var(--disc-x) - var(--pad-x));
   overflow: hidden;
   padding: 0.04em 0 0.06em;
   font-weight: 900;
@@ -170,8 +170,6 @@ html.no-gl .lineup { display: none; }
   --tint: color-mix(in srgb, var(--accent) 82%, #fff);
   color: color-mix(in srgb, var(--tint) calc(var(--c, 0) * 100%), #fff);
 }
-/* a ringed planet lets its ring run well over the name */
-.planet.ringed .name { width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 0.9); }
 .name .fit { display: inline-block; white-space: nowrap; font-size: clamp(72px, 15vw, 260px); transform-origin: 0% 60%; }
 .name .ch { display: inline-block; will-change: translate; }   /* translate is set from scroll */
 

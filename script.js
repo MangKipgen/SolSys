@@ -91,14 +91,28 @@ const luCap = lineupEl.querySelector('.lu-cap');
 
 /* ---------- Fit each planet name to the space beside the planet ---------- */
 function fitNames() {
-  document.querySelectorAll('.planet .name').forEach((name) => {
+  // one size for every name. Saturn sets it: its ring should just cover the last letter.
+  // A ball planet must never touch its name, so the widest ball name caps the size.
+  const names = [...document.querySelectorAll('.planet .name')];
+  const REF = 100;
+  const k = names.map((name) => {
     const fit = name.querySelector('.fit');
-    fit.style.fontSize = '100px';
-    const w = fit.getBoundingClientRect().width;
-    const target = name.clientWidth;
-    const size = Math.max(48, Math.min((100 * target * 0.97) / w, window.innerWidth * 0.26));
-    fit.style.fontSize = size + 'px';
+    fit.style.fontSize = REF + 'px';
+    return { fit, ringed: name.closest('.planet').classList.contains('ringed'), w: fit.getBoundingClientRect().width / REF };
   });
+  const cs = getComputedStyle(document.documentElement);
+  const toPx = (v) => { const t = document.createElement('i'); t.style.cssText = 'position:absolute;visibility:hidden;width:' + v; document.body.appendChild(t); const w = t.getBoundingClientRect().width; t.remove(); return w; };
+  const pad = toPx(cs.getPropertyValue('--pad-x').trim()), pr = toPx(cs.getPropertyValue('--pr').trim()), cx = toPx(cs.getPropertyValue('--disc-x').trim());
+  const mobile = window.innerWidth <= 760;
+  const room = mobile ? window.innerWidth - pad * 2 : cx - pad - pr * 1.25;      // beside a ball planet
+  let size = Math.min(room / Math.max(...k.filter((n) => !n.ringed).map((n) => n.w)), window.innerWidth * 0.26);
+  const sat = k.find((n) => n.ringed);
+  if (sat && !mobile) {
+    const ringLeft = cx - pr * 2.0;                                              // where the ring's left tip is
+    size = Math.min(size, (ringLeft - pad) / (sat.w - 0.45));                    // name ends about half a letter into the ring
+  }
+  size = Math.max(48, size);
+  k.forEach((n) => { n.fit.style.fontSize = size + 'px'; });
 }
 
 /* ---------- Numbers count with the scroll ---------- */
@@ -448,9 +462,6 @@ void main() {
     glow = vec4(uAtmo.rgb * g, g * 0.8);
   }
   vec4 o = sph + glow * (1.0 - sph.a);
-  // soft cast shadow behind the planet: it floats in front of whatever is behind it
-  float shd = (1.0 - smoothstep(0.92, 1.6, length(d - vec2(0.10, -0.13)))) * 0.5;
-  o += vec4(0.0, 0.0, 0.0, shd) * (1.0 - o.a);
 
   if (uRingOn > 0.5 && abs(Nr.z) > 0.02) {                                 // the ring itself
     float z = -(Nr.x * d.x + Nr.y * d.y) / Nr.z;
