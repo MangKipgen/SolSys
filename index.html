@@ -19,7 +19,8 @@
       <nav class="bar">
         <span class="links">
           <a href="#top">Index</a>
-          <a href="#mercury">Data</a>
+          <a href="#orbit">Orbits</a>
+          <a href="#mercury">Planets</a>
           <a href="#method">Method</a>
         </span>
         <a class="cue" href="#mercury"><i class="dot"></i>Scroll to travel</a>
@@ -34,7 +35,8 @@
       </div>
 
       <div class="lineup" aria-hidden="true">
-        <p class="label lu-cap">The eight planets · diameters to scale · distances are not</p>
+        <p class="label lu-cap">One ruler for every planet · diameters to scale · distances are not</p>
+        <p class="label lu-note"></p>
       </div>
 
       <footer class="foot">
@@ -45,6 +47,25 @@
           <div><dt class="label">Light to Neptune</dt><dd><span class="num-text">4h 10m</span></dd></div>
         </dl>
       </footer>
+    </div>
+  </section>
+
+  <!-- ORBITS: scroll runs the clock, 0 to 164.8 Earth years -->
+  <section class="orbit" id="orbit">
+    <div class="pin">
+      <div class="bar">
+        <span class="label light">Orbits</span>
+        <span class="label">Same scroll, now measuring time</span>
+      </div>
+      <div class="orbit-body">
+        <div class="orbit-copy">
+          <h2 class="display small">164 years in one pass</h2>
+          <p class="orbit-text">Scroll to run the clock. Mercury laps the Sun hundreds of times before Neptune completes a single orbit. Orbit sizes use a square-root scale so the inner planets stay visible.</p>
+          <div class="clock"><span class="label">Earth years elapsed</span><b id="yr">0</b></div>
+          <ul class="laps" id="laps"></ul>
+        </div>
+        <div class="orbit-view"><canvas id="orb" aria-label="Animated diagram of the eight planets orbiting the Sun"></canvas></div>
+      </div>
     </div>
   </section>
 
@@ -62,8 +83,9 @@
         <li>Figures come from NASA's Planetary Fact Sheets.</li>
         <li><b>Day</b> is the rotation period. <b>Year</b> is the orbital period around the Sun.</li>
         <li>Distance is the mean distance from the Sun. Light time to Neptune is that distance divided by the speed of light.</li>
-        <li>Moon counts are the confirmed totals at the time of writing and keep growing as new moons are found.</li>
-        <li>In the opening lineup every disc is drawn at true relative diameter. In the chapters all planets are shown at one size.</li>
+        <li>Moon counts are confirmed moons as of 2023 and keep growing as new moons are found.</li>
+        <li>Mean temperature is at the surface, or at the 1 bar level for the giants. Weight is a 70 kg person's weight at that gravity. Mass is in Earths. Light time is the mean distance divided by 299,792 km/s.</li>
+        <li>In the opening scale strip every disc is drawn at true relative diameter. In the chapters all planets are shown at one size. Orbit sizes use a square-root scale.</li>
         <li>Planet surface maps: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a>, CC BY 4.0, based on NASA data.</li>
       </ul>
     </div>
