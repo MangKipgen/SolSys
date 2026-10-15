@@ -4,7 +4,8 @@
   --text: #FFFFFF;
   --muted: #9A9A94;
   --rule: #2A2A2B;
-  --sun: #FFD400;       /* hero; each planet sets its own --accent */
+  --sun: #FFD400;
+  --nep: color-mix(in srgb, #4F7CFF 82%, #fff);   /* same recipe as the Neptune chapter's name */
   --accent: var(--sun);
 
   --display: 'Archivo', system-ui, sans-serif;       /* headlines */
@@ -12,8 +13,9 @@
   --mono: 'Martian Mono', ui-monospace, monospace;   /* captions and labels */
 
   --pad-x: clamp(20px, 3.33vw, 48px);
-  --d: clamp(160px, 23vw, 340px);   /* Jupiter's disc; others are a fraction of it */
-  --disc-x: 80vw;                    /* disc centre */
+  --d: clamp(160px, 23vw, 340px);   /* chapter planet size = Neptune's size (0.346 of this) */
+  --pr: calc(var(--d) * 0.173);     /* its radius */
+  --disc-x: 76vw;                   /* planet centre in the chapters */
 }
 
 /* ---------- Base ---------- */
@@ -28,19 +30,17 @@ body {
 a { color: inherit; text-decoration: none; }
 dl, dt, dd { margin: 0; }
 
-.screen {
-  /* scroll progress, written by script.js: 0 = centred, +1 below, -1 above */
-  --p: 0;
-  --ap: 0;
+/* scroll progress, written by script.js: 0 = centred, +1 below, -1 above */
+.screen, .stage { --p: 0; --ap: 0; --rl: 1; --ro: 0%; }
+
+.screen, .pin {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 32px var(--pad-x) 72px;
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
 }
+.screen { position: relative; z-index: 1; overflow: hidden; }
 
 #gl { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the box only holds its place */
@@ -56,11 +56,10 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   color: var(--muted);
 }
 .label.light, .cue { color: var(--text); }
-.accent { color: var(--accent); }
 
 .bar { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2; }
 .bar > :only-child { margin-left: auto; }
-.links { display: flex; gap: 40px; }
+.links { display: flex; gap: 40px; opacity: calc(1 - var(--lp, 0)); }   /* steps aside as the Sun arrives */
 .links a:hover { color: var(--text); }
 .cue { display: flex; align-items: center; gap: 10px; }
 .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--sun); }
@@ -78,8 +77,31 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
 }
 .unit { letter-spacing: 0.1em; }
 
-/* ---------- Hero ---------- */
+/* ---------- Rules: drawn in and out with the scroll ---------- */
+.foot, .data { position: relative; }
+.foot::before, .data::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: var(--rule);
+  transform-origin: var(--ro) 50%;
+  transform: scaleX(var(--rl));
+}
+
+/* ---------- Stage: title, then the lineup ---------- */
+.stage { position: relative; z-index: 1; height: 470vh; }
+.pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+html.no-gl .stage { height: 100vh; }
+html.no-gl .lineup { display: none; }
+
 .kicker { padding-bottom: 24px; }
+.headline {
+  /* leaves as --out goes 0 -> 1 */
+  opacity: calc(1 - var(--out, 0) * 1.15);
+  scale: calc(1 - var(--out, 0) * 0.06);
+  transform-origin: 0% 60%;
+}
 .display {
   font-weight: 900;
   font-size: clamp(64px, 13.06vw, 220px);
@@ -88,16 +110,16 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   word-spacing: 0.14em;
   text-transform: uppercase;
 }
-.display em { font-style: normal; color: var(--sun); }
+.display em { font-style: normal; }
+.display .sun { color: var(--sun); }
+.display .nep { color: var(--nep); }
 .display .line { display: block; overflow: hidden; padding: 0.06em 0; margin: -0.06em 0; }
 .display .line > span { display: block; translate: 0 105%; transition: translate 1.1s cubic-bezier(.2,.8,.2,1); }
 .display .line:nth-child(2) > span { transition-delay: .12s; }
-.hero.in .display .line > span { translate: 0 0; }
-
-/* the hero responds to scroll too: lines slide apart and fade as you leave */
-.hero .headline { opacity: clamp(0, calc(1.5 - var(--ap) * 1.7), 1); }
-.hero .display .line:nth-child(1) { translate: calc(var(--p) * 10vw) 0; }
-.hero .display .line:nth-child(2) { translate: calc(var(--p) * -10vw) 0; }
+.stage.in .display .line > span { translate: 0 0; }
+.display .ch { display: inline-block; will-change: translate; }
+.display .line:nth-child(1) { translate: calc(var(--out, 0) * -10vw) 0; }
+.display .line:nth-child(2) { translate: calc(var(--out, 0) * 12vw) 0; }
 
 .foot {
   display: flex;
@@ -106,19 +128,38 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   gap: 32px;
   flex-wrap: wrap;
   padding-top: 24px;
-  border-top: 1px solid var(--rule);
+  opacity: clamp(0, calc(1 - var(--out, 0) * 2.4), 1);
+  translate: 0 calc(var(--out, 0) * 6vh);
 }
 .intro { max-width: 440px; font-size: 20px; line-height: 30px; }
 .stats { display: flex; gap: 64px; flex-wrap: wrap; }
 .stats dt { margin-bottom: 10px; }
 .stats dd { font-size: clamp(28px, 3vw, 44px); }
 
+/* the lineup: labels and rules sit over the GL planets */
+.lineup { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.lu-label {
+  position: absolute;
+  top: 0; left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.lu-label b { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+.lu-label span { font-family: var(--mono); font-weight: 300; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.lu-rule { display: block; width: 1px; background: var(--muted); transform-origin: 50% 0%; margin-bottom: 8px; }
+.lu-cap { position: absolute; right: var(--pad-x); bottom: 56px; opacity: 0; }
+.lu-sun b, .lu-sun span { color: #0B0B0C; }   /* sits on the Sun, so dark type */
+
 /* ---------- Planet chapter ---------- */
 .name {
   position: relative;
   z-index: 1;
-  /* fills the space left of the disc */
-  width: calc(var(--disc-x) - var(--d) / 2 - var(--pad-x) - 28px);
+  /* fills the space up to the planet; rings are free to run over the last letters */
+  width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 1.05);
   overflow: hidden;
   padding: 0.04em 0 0.06em;
   font-weight: 900;
@@ -128,9 +169,13 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   --tint: color-mix(in srgb, var(--accent) 82%, #fff);
   color: color-mix(in srgb, var(--tint) calc(var(--c, 0) * 100%), #fff);
 }
-.name .fit { display: inline-block; white-space: nowrap; font-size: clamp(72px, 15vw, 260px); }
+/* a ringed planet lets its ring run well over the name */
+.planet.ringed .name { width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 0.8); }
+.name .fit { display: inline-block; white-space: nowrap; font-size: clamp(72px, 15vw, 260px); transform-origin: 0% 60%; }
 .name .ch { display: inline-block; will-change: translate; }   /* translate is set from scroll */
 
+/* hierarchy shifts with depth: bar, captions and numbers drift at different rates */
+.planet .bar { translate: 0 calc(var(--p) * -4vh); opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
 .data {
   position: relative;
   z-index: 2;
@@ -138,14 +183,14 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   padding-top: 24px;
-  border-top: 1px solid var(--rule);
 }
-.data dt { margin-bottom: 14px; }
-.data dd { font-size: clamp(26px, 3.4vw, 50px); }
+.planet .data { opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
+.planet .data dt { translate: 0 calc(var(--p) * 3vh); margin-bottom: 14px; }
+.planet .data dd { translate: 0 calc(var(--p) * 9vh); font-size: clamp(26px, 3.4vw, 50px); }
 
 /* ---------- Planet discs: flat fallback; the GL layer draws the real thing ---------- */
 .disc {
-  --w: max(10px, calc(var(--r, 1) * var(--d)));
+  --w: max(10px, calc(var(--r, 0.346) * var(--d)));
   position: absolute;
   top: 46%;
   left: var(--disc-x);
@@ -156,23 +201,11 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   scale: clamp(0.4, calc(1.12 - var(--ap) * 0.6), 1);
   opacity: clamp(0, calc(1.6 - var(--ap) * 1.8), 1);
 }
-.disc .body {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--accent);
-}
-/* ---------- One-shot reveal (data row, bars, method) ---------- */
-.planet .data, .planet .bar, .method-body { opacity: 0; translate: 0 32px; transition: opacity .7s ease, translate .7s ease; }
-.planet .data { transition-delay: .2s; }
-.planet.in .data, .planet.in .bar, .method.in .method-body { opacity: 1; translate: 0 0; }
+.disc .body { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--accent); }
 
 /* ---------- Method ---------- */
-.method-body { max-width: 640px; }
+.method .bar { opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
+.method-body { max-width: 640px; opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); translate: 0 calc(var(--p) * 9vh); }
 .display.small { font-size: clamp(56px, 8vw, 120px); margin-bottom: 32px; }
 .method li {
   list-style: none;
@@ -182,6 +215,8 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
   border-top: 1px solid var(--rule);
 }
 .method li b { font-family: var(--mono); font-weight: 400; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sun); }
+.method li a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule); }
+.method li a:hover { text-decoration-color: var(--text); }
 
 /* ---------- Distance rail (fixed): Sun to Neptune on one honest linear scale ---------- */
 .rail {
@@ -217,17 +252,19 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .display .line > span, .planet .data, .planet .bar, .method-body { transition: none; }
+  .display .line > span { transition: none; }
 }
 
 /* ---------- Small screens ---------- */
 @media (max-width: 760px) {
-  :root { --d: clamp(120px, 34vw, 200px); --disc-x: 72vw; }
+  :root { --d: clamp(120px, 34vw, 200px); --disc-x: 70vw; }
   .links { display: none; }
   .name { width: 100%; }
   .disc { top: 25%; }
   .data { grid-template-columns: repeat(2, 1fr); row-gap: 28px; }
   .stats { gap: 28px; }
+  .lu-label span { display: none; }
+  .lu-cap { display: none; }
   .rail-l { display: none; }
   .rail-r { min-width: 90px; }
 }

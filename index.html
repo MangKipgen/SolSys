@@ -12,33 +12,40 @@
 </head>
 <body>
 
-  <!-- HERO -->
-  <section class="screen hero" id="top">
-    <nav class="bar">
-      <span class="links">
-        <a href="#top">Index</a>
-        <a href="#mercury">Data</a>
-        <a href="#method">Method</a>
-      </span>
-      <a class="cue" href="#mercury"><i class="dot"></i>Scroll to travel</a>
-    </nav>
+  <!-- STAGE: one tall section with a pinned screen. The title plays first, then
+       leaves, and the eight planets arrive at true relative size. -->
+  <section class="stage" id="top">
+    <div class="pin">
+      <nav class="bar">
+        <span class="links">
+          <a href="#top">Index</a>
+          <a href="#mercury">Data</a>
+          <a href="#method">Method</a>
+        </span>
+        <a class="cue" href="#mercury"><i class="dot"></i>Scroll to travel</a>
+      </nav>
 
-    <div class="headline">
-      <p class="label kicker">Eight worlds · 4.5 billion km · one scroll</p>
-      <h1 class="display">
-        <span class="line"><span>The Sun</span></span>
-        <span class="line"><span><em>to Neptune</em></span></span>
-      </h1>
+      <div class="headline">
+        <p class="label kicker">Eight worlds · 4.5 billion km · one scroll</p>
+        <h1 class="display" aria-label="The Sun to Neptune">
+          <span class="line"><span aria-hidden="true">The <em class="sun">Sun</em></span></span>
+          <span class="line"><span aria-hidden="true">to <em class="nep">Neptune</em></span></span>
+        </h1>
+      </div>
+
+      <div class="lineup" aria-hidden="true">
+        <p class="label lu-cap">The eight planets · diameters to scale · distances are not</p>
+      </div>
+
+      <footer class="foot">
+        <p class="intro">A scroll through the solar system at honest scale. Distances, days and temperatures from NASA fact sheets.</p>
+        <dl class="stats">
+          <div><dt class="label">Planets</dt><dd><span class="num">8</span></dd></div>
+          <div><dt class="label">Known moons</dt><dd><span class="num">288</span></dd></div>
+          <div><dt class="label">Light to Neptune</dt><dd><span class="num-text">4h 10m</span></dd></div>
+        </dl>
+      </footer>
     </div>
-
-    <footer class="foot">
-      <p class="intro">A scroll through the solar system at honest scale. Distances, days and temperatures from NASA fact sheets.</p>
-      <dl class="stats">
-        <div><dt class="label">Planets</dt><dd><span class="num">8</span></dd></div>
-        <div><dt class="label">Known moons</dt><dd><span class="num">288</span></dd></div>
-        <div><dt class="label">Light to Neptune</dt><dd class="accent"><span class="num-text">4h 10m</span></dd></div>
-      </dl>
-    </footer>
   </section>
 
   <!-- PLANET CHAPTERS are generated from data.js by script.js -->
@@ -56,13 +63,15 @@
         <li><b>Day</b> is the rotation period. <b>Year</b> is the orbital period around the Sun.</li>
         <li>Distance is the mean distance from the Sun. Light time to Neptune is that distance divided by the speed of light.</li>
         <li>Moon counts are the confirmed totals at the time of writing and keep growing as new moons are found.</li>
-        <li>Each disc is drawn in proportion to Jupiter's diameter.</li>
+        <li>In the opening lineup every disc is drawn at true relative diameter. In the chapters all planets are shown at one size.</li>
+        <li>Planet surface maps: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a>, CC BY 4.0, based on NASA data.</li>
       </ul>
     </div>
     <p class="label">SolSys · a work in progress</p>
   </section>
 
   <script src="data.js"></script>
+  <script src="tex.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
