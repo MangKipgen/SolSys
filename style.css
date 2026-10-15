@@ -13,8 +13,8 @@
   --mono: 'Martian Mono', ui-monospace, monospace;   /* captions and labels */
 
   --pad-x: clamp(20px, 3.33vw, 48px);
-  --d: clamp(160px, 23vw, 340px);   /* chapter planet size = Neptune's size (0.346 of this) */
-  --pr: calc(var(--d) * 0.173);     /* its radius */
+  --d: clamp(120px, 15vw, 235px);   /* every chapter planet is this wide (Jupiter's size in the lineup) */
+  --pr: calc(var(--d) * 0.5);       /* its radius */
   --disc-x: 76vw;                   /* planet centre in the chapters */
 }
 
@@ -40,9 +40,10 @@ dl, dt, dd { margin: 0; }
   justify-content: space-between;
   padding: 32px var(--pad-x) 72px;
 }
-.screen { position: relative; z-index: 1; overflow: hidden; }
+.screen { position: relative; overflow: hidden; }   /* no z-index: its children join the page-level stacking order */
 
-#gl { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+/* stacking, back to front: names (1) < GL layer (5) < every other piece of text (10) */
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
 html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the box only holds its place */
 
 /* ---------- Captions: Martian Mono ---------- */
@@ -90,7 +91,7 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
 }
 
 /* ---------- Stage: title, then the lineup ---------- */
-.stage { position: relative; z-index: 1; height: 470vh; }
+.stage { position: relative; z-index: 10; height: 470vh; }
 .pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
 html.no-gl .stage { height: 100vh; }
 html.no-gl .lineup { display: none; }
@@ -159,7 +160,7 @@ html.no-gl .lineup { display: none; }
   position: relative;
   z-index: 1;
   /* fills the space up to the planet; rings are free to run over the last letters */
-  width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 1.05);
+  width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 1.2);
   overflow: hidden;
   padding: 0.04em 0 0.06em;
   font-weight: 900;
@@ -170,15 +171,15 @@ html.no-gl .lineup { display: none; }
   color: color-mix(in srgb, var(--tint) calc(var(--c, 0) * 100%), #fff);
 }
 /* a ringed planet lets its ring run well over the name */
-.planet.ringed .name { width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 0.8); }
+.planet.ringed .name { width: calc(var(--disc-x) - var(--pad-x) - var(--pr) * 0.9); }
 .name .fit { display: inline-block; white-space: nowrap; font-size: clamp(72px, 15vw, 260px); transform-origin: 0% 60%; }
 .name .ch { display: inline-block; will-change: translate; }   /* translate is set from scroll */
 
 /* hierarchy shifts with depth: bar, captions and numbers drift at different rates */
-.planet .bar { translate: 0 calc(var(--p) * -4vh); opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
+.planet .bar { position: relative; z-index: 10; translate: 0 calc(var(--p) * -4vh); opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
 .data {
   position: relative;
-  z-index: 2;
+  z-index: 10;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
@@ -190,7 +191,7 @@ html.no-gl .lineup { display: none; }
 
 /* ---------- Planet discs: flat fallback; the GL layer draws the real thing ---------- */
 .disc {
-  --w: max(10px, calc(var(--r, 0.346) * var(--d)));
+  --w: max(10px, calc(var(--r, 1) * var(--d)));
   position: absolute;
   top: 46%;
   left: var(--disc-x);
@@ -204,6 +205,7 @@ html.no-gl .lineup { display: none; }
 .disc .body { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--accent); }
 
 /* ---------- Method ---------- */
+.method { z-index: 10; }
 .method .bar { opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
 .method-body { max-width: 640px; opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); translate: 0 calc(var(--p) * 9vh); }
 .display.small { font-size: clamp(56px, 8vw, 120px); margin-bottom: 32px; }
@@ -257,7 +259,7 @@ html.no-gl .lineup { display: none; }
 
 /* ---------- Small screens ---------- */
 @media (max-width: 760px) {
-  :root { --d: clamp(120px, 34vw, 200px); --disc-x: 70vw; }
+  :root { --d: clamp(110px, 34vw, 170px); --disc-x: 70vw; }
   .links { display: none; }
   .name { width: 100%; }
   .disc { top: 25%; }

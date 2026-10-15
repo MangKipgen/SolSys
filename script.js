@@ -5,7 +5,7 @@ const smooth = (x) => x * x * (3 - 2 * x);
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
 const SUN = '#FFD400';
 const MAX_KM = PLANETS[PLANETS.length - 1].mkm;
-const CHAPTER_R = 0.346;   // every planet in the chapters is drawn at Neptune's size
+const CHAPTER_R = 1;       // every planet in the chapters is drawn at one size (--d in style.css)
 
 const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
 
@@ -322,7 +322,7 @@ uniform vec2 uMouse, uRes;
 out vec2 vUV; out float vA; out vec3 vCol;
 vec2 proj(float zf, vec2 xy) {
   float d = 1.0 - zf * 0.93;
-  return vec2(xy.x * uAspect, xy.y) * (0.75 / d) + vec2(uMouse.x, -uMouse.y) * zf * 0.09;
+  return vec2(xy.x * uAspect, xy.y) * (0.75 / d) + vec2(uMouse.x, -uMouse.y) * zf * 0.04;
 }
 void main() {
   float zf = fract(aStar.z - uTravel);               // 0 far -> 1 near; wraps, so the field never runs out
@@ -332,7 +332,7 @@ void main() {
   vec2 dir = sh - st;
   float len = length(dir);
   dir = len > 0.001 ? dir / len : vec2(1.0, 0.0);
-  float w = (0.85 + zf * zf * 2.8) * aStar.w * uDpr;
+  float w = (0.8 + zf * zf * 2.0) * aStar.w * uDpr;
   float L = max(len, w * 1.3);
   vec2 base = mix(sh, sh - dir * L, aCorner.x);
   vec2 side = vec2(-dir.y, dir.x) * aCorner.y * w;
@@ -346,11 +346,12 @@ const STAR_FS = `#version 300 es
 precision mediump float;
 in vec2 vUV; in float vA; in vec3 vCol;
 uniform vec3 uTint;
+uniform float uStarA;
 out vec4 oc;
 void main() {
   float across = 1.0 - smoothstep(0.3, 1.0, abs(vUV.y));
   float along = 1.0 - vUV.x * 0.92;
-  float a = across * along * vA * 1.05;
+  float a = across * along * vA * 0.8 * uStarA;
   oc = vec4(mix(vCol, uTint, 0.28) * a, a);
 }`;
 
@@ -447,6 +448,9 @@ void main() {
     glow = vec4(uAtmo.rgb * g, g * 0.8);
   }
   vec4 o = sph + glow * (1.0 - sph.a);
+  // soft cast shadow behind the planet: it floats in front of whatever is behind it
+  float shd = (1.0 - smoothstep(0.92, 1.6, length(d - vec2(0.10, -0.13)))) * 0.5;
+  o += vec4(0.0, 0.0, 0.0, shd) * (1.0 - o.a);
 
   if (uRingOn > 0.5 && abs(Nr.z) > 0.02) {                                 // the ring itself
     float z = -(Nr.x * d.x + Nr.y * d.y) / Nr.z;
@@ -537,7 +541,7 @@ function initGL() {
   document.documentElement.classList.add('gl');
 
   /* stars: one instance each, drawn as a quad that stretches into a streak with scroll speed */
-  const N = window.innerWidth < 760 ? 1100 : 2300;
+  const N = window.innerWidth < 760 ? 800 : 1700;
   const inst = new Float32Array(N * 6);
   for (let i = 0; i < N; i++) {
     const big = Math.random() < 0.06;
@@ -570,7 +574,7 @@ function initGL() {
   gl.bindVertexArray(null);
 
   const U = (prog, names) => Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(prog, n)]));
-  const us = U(starProg, ['uTravel', 'uBlur', 'uAspect', 'uDpr', 'uMouse', 'uRes', 'uTint']);
+  const us = U(starProg, ['uTravel', 'uBlur', 'uAspect', 'uDpr', 'uMouse', 'uRes', 'uTint', 'uStarA']);
   const up = U(planetProg, ['uRect', 'uView', 'uAlb', 'uCld', 'uNit', 'uRng', 'uC', 'uL', 'uA', 'uF', 'uAtmo', 'uRingOn', 'uRL']);
   const un = U(sunProg, ['uRect', 'uView', 'uC', 'uS']);
 
@@ -668,6 +672,9 @@ function initGL() {
     gl.uniform2f(us.uMouse, mouse.x, mouse.y);
     gl.uniform2f(us.uRes, canvas.width, canvas.height);
     gl.uniform3fv(us.uTint, tint);
+    // the star field steps out while the planets are lined up, and returns as the section ends
+    const sv = stage.s === 99 ? 0 : stage.s;
+    gl.uniform1f(us.uStarA, 1 - smooth(clamp((sv - 0.22) / 0.14, 0, 1)) * (1 - smooth(clamp((sv - 0.90) / 0.10, 0, 1))));
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, N);
 
     gl.bindVertexArray(quadVAO);
@@ -702,8 +709,8 @@ function initGL() {
       if (alpha < 0.01) return;
       const r = sec.el.querySelector('.disc .body').getBoundingClientRect();
       const pp = clamp(sec.p, -1.2, 1.2);
-      // the light sweeps across as you scroll past
-      const L = [-0.50 - 0.85 * pp, 0.28, 0.80 - 0.55 * Math.abs(pp)];
+      // lit from the Sun on the left, as in the lineup, with a slight sweep as you pass
+      const L = [-0.95 + 0.22 * pp, 0.16, 0.30 + 0.22 * Math.abs(pp)];
       drawPlanet(i, r.left + r.width / 2 + mouse.x * -9, r.top + r.height / 2 + mouse.y * -6, Math.max(r.width / 2, 1), alpha, L, spinBase + i * 1.7, idle);
     });
   }
@@ -720,7 +727,7 @@ function frame(now) {
   // scroll speed drives the star streaks
   motion.vel += ((y - motion.lastY) - motion.vel) * 0.18;
   motion.lastY = y;
-  const target = clamp(motion.vel * 0.00042 * 9, -0.45, 0.45) + (reduceMotion ? 0 : 0.0035);
+  const target = clamp(motion.vel * 0.00017 * 9, -0.18, 0.18) + (reduceMotion ? 0 : 0.0014);
   motion.blur += (target - motion.blur) * 0.25;
 
   sections.forEach((s) => {
@@ -740,7 +747,7 @@ function frame(now) {
   if (sChanged) applyStage(stage.s);
 
   updateRail();
-  if (glLayer) glLayer.draw(t, y * 0.00042 + (reduceMotion ? 0 : t * 0.006), motion.blur);
+  if (glLayer) glLayer.draw(t, y * 0.00017 + (reduceMotion ? 0 : t * 0.0024), motion.blur);
   requestAnimationFrame(frame);
 }
 function layout() {
