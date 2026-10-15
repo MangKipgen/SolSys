@@ -183,7 +183,7 @@ html.no-gl .lineup { display: none; }
 .data {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--cols, 4), 1fr);
   gap: 22px 24px;
   margin-top: 22px;
   padding-top: 22px;
@@ -192,7 +192,8 @@ html.no-gl .lineup { display: none; }
 .planet .data { opacity: var(--dv, 0); }
 .planet .data dt { margin-bottom: 10px; }
 .data dd { justify-content: center; }
-.planet .data dd { font-size: clamp(22px, 2.6vw, 38px); }
+.planet .data { --cols: 6; gap: 22px 16px; }
+.planet .data dd { font-size: clamp(20px, 2.35vw, 34px); gap: 8px; }
 
 /* ---------- Planet discs: flat fallback; the GL layer draws the real thing ---------- */
 .disc { position: absolute; left: 50%; top: 50%; width: 200px; aspect-ratio: 1; translate: -50% -50%; }
@@ -268,8 +269,8 @@ html.no-gl .lineup { display: none; }
 @media (max-width: 760px) {
   :root { --nm: min(14vw, 15vh); }
   .links { display: none; }
-  .data { grid-template-columns: repeat(2, 1fr); row-gap: 14px; }
-  .planet .data dd { font-size: 22px; }
+  .planet .data { --cols: 3; row-gap: 14px; }
+  .planet .data dd { font-size: 20px; gap: 5px; flex-wrap: wrap; }
   .record { display: none; }
   .lore { margin-top: 12px; }
   .stats { gap: 28px; }

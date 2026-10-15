@@ -58,8 +58,6 @@ PLANETS.forEach((p, i) => {
         ${cell('Moons', valueHTML(p.moons))}
         ${cell('Mean temperature', valueHTML(p.temp))}
         ${cell('Sunlight takes', `<span class="num-text">${lightTime(p.mkm)}</span>`)}
-        ${cell('A 70 kg person weighs', valueHTML(p.weight))}
-        ${cell('Mass', valueHTML(p.mass))}
       </dl>
       <div class="disc" aria-hidden="true"><i class="body"></i></div>
     </div>`;
