@@ -34,7 +34,8 @@ PLANETS.forEach((p, i) => {
   s.className = 'planet' + (p.ring ? ' ringed' : '');
   s.id = p.name.toLowerCase();
   s.style.setProperty('--accent', p.accent);
-  const cell = (k, html) => `<div><dt class="label">${k}</dt><dd>${html}</dd></div>`;
+  let ci = 0;
+  const cell = (k, html) => `<div style="--j:${ci++}"><dt class="label">${k}</dt><dd>${html}</dd></div>`;
   s.innerHTML = `
     <div class="pin">
       <div class="bar">
@@ -48,7 +49,7 @@ PLANETS.forEach((p, i) => {
         }</span></h2>
         <div class="lore">
           <p class="tidbit">${p.tidbit}</p>
-          <p class="record"><b>Record</b>${p.record}</p>
+          <p class="record"><b>Record</b> ${p.record}</p>
         </div>
       </div>
       <dl class="data">
@@ -196,8 +197,8 @@ function applyChapter(sec, q) {
   sec.ax = smooth(clamp((q - 0.40) / 0.14, 0, 1));                                  // axis line on the planet
 
   // numbers count up the first time the data arrives, and then hold
-  const v = smooth(clamp((q - 0.58) / 0.20, 0, 1));
-  sec.nums.forEach((el) => setNum(el, v));
+  // staggered: each cell starts a little after the last, so the data is still moving as the scene settles
+  sec.nums.forEach((el, j) => setNum(el, smooth(clamp((q - 0.58 - j * 0.03) / 0.26, 0, 1))));
 }
 
 /* Lineup geometry. One ruler for every planet: world x is measured from the Sun's edge in px at
@@ -393,7 +394,7 @@ uniform vec2 uMouse, uRes;
 out vec2 vUV; out float vA; out vec3 vCol;
 vec2 proj(float zf, vec2 xy) {
   float d = 1.0 - zf * 0.93;
-  return vec2(xy.x * uAspect, xy.y) * (0.75 / d) + vec2(uMouse.x, -uMouse.y) * zf * 0.04;
+  return vec2(xy.x * uAspect, xy.y) * (0.75 / d) + vec2(uMouse.x, -uMouse.y) * zf * 0.03;
 }
 void main() {
   float zf = fract(aStar.z - uTravel);               // 0 far -> 1 near; wraps, so the field never runs out
@@ -422,7 +423,7 @@ out vec4 oc;
 void main() {
   float across = 1.0 - smoothstep(0.3, 1.0, abs(vUV.y));
   float along = 1.0 - vUV.x * 0.92;
-  float a = across * along * vA * 0.8 * uStarA;
+  float a = across * along * vA * 0.6 * uStarA;
   oc = vec4(mix(vCol, uTint, 0.28) * a, a);
 }`;
 
@@ -534,14 +535,15 @@ void main() {
       o = rg + o * (1.0 - rg.a);
     }
   }
-  if (uAx > 0.0) {                                                         // the spin axis, drawn past both poles
+  if (uAx > 0.0) {                                                         // the spin axis: a straight diagram line past each pole, with an end tick
     vec2 u = normalize(Nr.xy);
-    float perp = abs(d.x * u.y - d.y * u.x) * R;                           // px from the axis line
+    float perp = abs(d.x * -u.y + d.y * u.x) * R;                          // px across the line
     float along = abs(dot(d, u));
-    float ext = 0.30;
-    float k = clamp((along - 1.05) / ext, 0.0, 1.0);
-    float line = (1.0 - smoothstep(0.5, 1.2, perp)) * step(1.05, along) * (1.0 - k) * uAx * 0.7;
-    o = vec4(vec3(1.0) * line, line) + o * (1.0 - line);
+    float a0 = 1.07, a1 = 1.26;
+    float bar = step(a0, along) * step(along, a1) * (1.0 - smoothstep(0.6, 1.0, perp));
+    float tick = (1.0 - smoothstep(0.6, 1.0, abs(along - a1) * R)) * (1.0 - smoothstep(4.0, 5.0, perp));
+    float line = max(bar, tick) * uAx * 0.8;
+    o = vec4(vec3(line), line) + o * (1.0 - line);
   }
   oc = o * uA.w;
 }`;
@@ -618,11 +620,11 @@ function initGL() {
   document.documentElement.classList.add('gl');
 
   /* stars: one instance each, drawn as a quad that stretches into a streak with scroll speed */
-  const N = window.innerWidth < 760 ? 800 : 1700;
+  const N = window.innerWidth < 760 ? 600 : 1275;
   const inst = new Float32Array(N * 6);
   for (let i = 0; i < N; i++) {
-    const big = Math.random() < 0.06;
-    inst.set([Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random(), (big ? 1.7 : 0.8) * (0.7 + Math.random() * 0.6), Math.random(), Math.random()], i * 6);
+    const big = Math.random() < 0.04;
+    inst.set([Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random(), (big ? 1.3 : 0.65) * (0.7 + Math.random() * 0.6), Math.random(), Math.random()], i * 6);
   }
   const starVAO = gl.createVertexArray();
   gl.bindVertexArray(starVAO);
@@ -879,7 +881,7 @@ function frame(now) {
   // scroll speed drives the star streaks
   motion.vel += ((y - motion.lastY) - motion.vel) * 0.18;
   motion.lastY = y;
-  const target = clamp(motion.vel * 0.00017 * 9, -0.18, 0.18) + (reduceMotion ? 0 : 0.0014);
+  const target = clamp(motion.vel * 0.000128 * 9, -0.135, 0.135) + (reduceMotion ? 0 : 0.00105);
   motion.blur += (target - motion.blur) * 0.25;
 
   const H = window.innerHeight;
@@ -928,7 +930,7 @@ function frame(now) {
   }
 
   updateRail();
-  if (glLayer) glLayer.draw(t, y * 0.00017 + (reduceMotion ? 0 : t * 0.0024), motion.blur);
+  if (glLayer) glLayer.draw(t, y * 0.000128 + (reduceMotion ? 0 : t * 0.0018), motion.blur);
   requestAnimationFrame(frame);
 }
 function layout() {

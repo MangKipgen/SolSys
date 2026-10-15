@@ -174,9 +174,9 @@ html.no-gl .lineup { display: none; }
 }
 .name .fit { display: inline-block; white-space: nowrap; font-size: var(--nm); }
 .name .ch { display: inline-block; will-change: translate; }   /* translate is set from scroll */
-.lore { max-width: 64ch; margin-top: 18px; opacity: var(--lv, 0); translate: 0 calc((1 - var(--lv, 0)) * 18px); }
-.tidbit { font-size: clamp(16px, 1.45vw, 20px); line-height: 1.45; }
-.record { margin-top: 10px; font-family: var(--mono); font-weight: 300; font-size: 12px; line-height: 1.6; letter-spacing: 0.04em; color: var(--muted); }
+.lore { width: 100%; margin-top: 18px; opacity: var(--lv, 0); translate: 0 calc((1 - var(--lv, 0)) * 18px); }
+.tidbit { max-width: 64ch; margin: 0 auto; font-size: clamp(16px, 1.45vw, 20px); line-height: 1.45; }
+.record { margin-top: 10px; white-space: nowrap; font-family: var(--mono); font-weight: 300; font-size: clamp(10px, 0.85vw, 12px); line-height: 1.6; letter-spacing: 0.04em; color: var(--muted); }
 .record b { font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 82%, #fff); margin-right: 8px; }
 
 .data {
@@ -188,7 +188,7 @@ html.no-gl .lineup { display: none; }
   padding-top: 22px;
   text-align: center;
 }
-.planet .data { opacity: var(--dv, 0); }
+.planet .data > div { --o: clamp(0, calc(var(--dv, 0) * 1.9 - var(--j, 0) * 0.17), 1); opacity: var(--o); translate: 0 calc((1 - var(--o)) * 16px); }
 .planet .data dt { margin-bottom: 10px; }
 .data dd { justify-content: center; }
 .planet .data { --cols: 6; gap: 22px 16px; }
@@ -208,7 +208,7 @@ html.no-gl .lineup { display: none; }
 .laps { list-style: none; max-width: 300px; border-top: 1px solid var(--rule); }
 .laps li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-weight: 300; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
 .laps li b { font-weight: 400; color: var(--text); }
-.orbit-view { flex: none; width: min(88vw, 70vh); aspect-ratio: 1; }
+.orbit-view { flex: none; width: min(50vw, 80vh); aspect-ratio: 1; }
 #orb { display: block; width: 100%; height: 100%; }
 
 /* ---------- Method ---------- */
