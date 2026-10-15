@@ -7,21 +7,21 @@
   <meta name="description" content="A scroll through the solar system at honest scale. Distances, days and temperatures from NASA fact sheets.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- 01 · HERO -->
-  <section class="screen hero" id="top">
+  <!-- HERO -->
+  <section class="screen hero in" id="top">
     <nav class="bar">
       <span class="brand">Perihelion</span>
       <span class="links">
         <a href="#top">Index</a>
-        <a href="#jupiter">Data</a>
-        <a href="#jupiter">Method</a>
+        <a href="#mercury">Data</a>
+        <a href="#method">Method</a>
       </span>
-      <span class="cue"><i class="dot"></i>Scroll to travel</span>
+      <a class="cue" href="#mercury"><i class="dot"></i>Scroll to travel</a>
     </nav>
 
     <div class="headline">
@@ -39,27 +39,29 @@
     </footer>
   </section>
 
-  <!-- 05 · JUPITER (copy this block to add more planets) -->
-  <section class="screen planet" id="jupiter">
+  <!-- PLANET CHAPTERS are generated from data.js by script.js -->
+  <main id="chapters"></main>
+
+  <!-- METHOD -->
+  <section class="screen method" id="method">
     <div class="bar">
       <span class="brand">Perihelion</span>
-      <span class="progress">
-        <span class="label light">05 / 08</span>
-        <span class="track"><span class="fill" style="width: 62.5%"></span></span>
-        <span class="label">778.5M km</span>
-      </span>
+      <a class="cue" href="#top">Back to the Sun</a>
     </div>
-
-    <div class="disc" aria-hidden="true"></div>
-    <h2 class="name">Jupiter</h2>
-
-    <dl class="data">
-      <div><dt class="label">Diameter</dt><dd>142,984 km</dd></div>
-      <div><dt class="label">Day</dt><dd>9.9 hours</dd></div>
-      <div><dt class="label">Year</dt><dd>11.9 years</dd></div>
-      <div><dt class="label">Moons</dt><dd class="accent">95</dd></div>
-    </dl>
+    <div class="method-body">
+      <h2 class="display small">Method</h2>
+      <ul>
+        <li>Figures come from NASA's Planetary Fact Sheets.</li>
+        <li><b>Day</b> is the rotation period. <b>Year</b> is the orbital period around the Sun.</li>
+        <li>Distance is the mean distance from the Sun. Light time to Neptune is that distance divided by the speed of light.</li>
+        <li>Moon counts are the confirmed totals at the time of writing and keep growing as new moons are found.</li>
+        <li>Each disc is drawn in proportion to Jupiter's diameter.</li>
+      </ul>
+    </div>
+    <p class="label">SolSys · a work in progress</p>
   </section>
 
+  <script src="data.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
