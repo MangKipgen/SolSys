@@ -164,7 +164,6 @@ html.no-gl .lineup { display: none; }
 .tilt b { font-weight: 400; color: var(--text); }
 .name {
   width: 100%;
-  overflow: hidden;
   padding: 0.04em 0 0.06em;
   font-weight: 900;
   line-height: 0.9;

@@ -143,10 +143,11 @@ const sections = [...document.querySelectorAll('.planet')].map((el) => ({
   tilt: el.querySelector('.tilt'),
   disc: el.querySelector('.disc'),
   body: el.querySelector('.disc .body'),
+  name: el.querySelector('.name'),
   letters: [...el.querySelectorAll('.name .ch')],
   nums: [...el.querySelectorAll('.num')],
   q: 99, target: 0, top: 0, height: 1, near: false,
-  sy: 0, sd: 160, big: 400, k: 0, ax: 0
+  sy: 0, sd: 160, big: 400, k: 0, ax: 0, ny: 0, nw: 600
 }));
 sections.forEach((s) => s.nums.forEach(prepNum));
 const methodSec = { el: document.getElementById('method'), p: 99, target: 99, top: 0, height: 1 };
@@ -161,17 +162,32 @@ function applyMethod(sec, p) {
   st.setProperty('--ap', Math.abs(p).toFixed(4));
 }
 
-/* The chapter timeline. q -> where the planet is and what has appeared. */
+/* The chapter timeline. q -> where the planet and the name are, and what has appeared.
+   The name starts large BEHIND the planet, a little toward the top, so only its outer
+   letters show. As you scroll the planet shrinks up into its slot while the name scales
+   down and slides to its place beneath it; then the tilt, tidbit, data and numbers arrive. */
 function applyChapter(sec, q) {
   const st = sec.el.style;
-  const H = window.innerHeight;
-  const k = smooth(clamp((q - 0.16) / 0.30, 0, 1));          // planet shrinks and moves into its slot
+  const W = window.innerWidth, H = window.innerHeight;
+  const k = smooth(clamp((q - 0.08) / 0.30, 0, 1));          // planet shrinks and moves into its slot
   sec.k = k;
   const d = sec.big + (sec.sd - sec.big) * k;
   sec.disc.style.width = d.toFixed(1) + 'px';
   sec.disc.style.top = (H / 2 + (sec.sy - H / 2) * k).toFixed(1) + 'px';
 
-  st.setProperty('--c', smooth(clamp((q - 0.34) / 0.25, 0, 1)).toFixed(3));        // name: white -> planet colour
+  // the name: starts big and behind the planet, settles into its end position
+  const e = smooth(clamp((q - 0.12) / 0.34, 0, 1));
+  const left = 1 - e;
+  const s0 = clamp((W * 0.98) / sec.nw, 1.35, 2.4);
+  const y0 = H / 2 - sec.big * 0.14;                            // centre of the name at the start: a little above the planet's centre
+  sec.name.style.translate = `0 ${((y0 - sec.ny) * left).toFixed(1)}px`;
+  sec.name.style.scale = (1 + (s0 - 1) * left).toFixed(4);
+  const mid = (sec.letters.length - 1) / 2;
+  sec.letters.forEach((ch, i) => {                              // letters start a little apart and close up
+    ch.style.translate = `${((i - mid) * 0.09 * left).toFixed(3)}em 0`;
+  });
+
+  st.setProperty('--c', smooth(clamp((q - 0.20) / 0.30, 0, 1)).toFixed(3));        // name: white -> planet colour
   st.setProperty('--tv', smooth(clamp((q - 0.40) / 0.14, 0, 1)).toFixed(3));       // tilt caption
   st.setProperty('--lv', smooth(clamp((q - 0.48) / 0.16, 0, 1)).toFixed(3));       // tidbit and record
   st.setProperty('--dv', smooth(clamp((q - 0.54) / 0.14, 0, 1)).toFixed(3));       // data row
@@ -179,11 +195,6 @@ function applyChapter(sec, q) {
   st.setProperty('--ro', '0%');
   sec.ax = smooth(clamp((q - 0.40) / 0.14, 0, 1));                                  // axis line on the planet
 
-  // letters rise into the name one after another
-  sec.letters.forEach((ch, i) => {
-    const r = clamp((q - 0.32 - i * 0.014) / 0.16, 0, 1);
-    ch.style.translate = `0 ${((1 - smooth(r)) * 112).toFixed(2)}%`;
-  });
   // numbers count up the first time the data arrives, and then hold
   const v = smooth(clamp((q - 0.58) / 0.20, 0, 1));
   sec.nums.forEach((el) => setNum(el, v));
@@ -283,6 +294,8 @@ function measure() {
     s.sd = clamp((sr.height - lab) / 1.3, 90, Math.min(H * 0.36, 380));      // room left over for the axis line past each pole
     s.sy = sr.top - pr.top + (sr.height - lab) / 2;
     s.big = Math.min(H * 0.78, (W * 0.92) / (s.el.classList.contains('ringed') ? 2.45 : 1));
+    s.ny = s.name.offsetTop + s.name.offsetHeight / 2;           // offsets ignore transforms, so this is the name's end position
+    s.nw = s.name.querySelector('.fit').offsetWidth;
   });
   const mr = methodSec.el.getBoundingClientRect();
   methodSec.top = mr.top + window.scrollY;
