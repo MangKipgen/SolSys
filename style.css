@@ -174,11 +174,6 @@ html.no-gl .lineup { display: none; }
 }
 .name .fit { display: inline-block; white-space: nowrap; font-size: var(--nm); }
 .name .ch { display: inline-block; will-change: translate; }   /* translate is set from scroll */
-.lore { width: 100%; margin-top: 18px; opacity: var(--lv, 0); translate: 0 calc((1 - var(--lv, 0)) * 18px); }
-.tidbit { max-width: 64ch; margin: 0 auto; font-size: clamp(16px, 1.45vw, 20px); line-height: 1.45; }
-.record { margin-top: 10px; white-space: nowrap; font-family: var(--mono); font-weight: 300; font-size: clamp(10px, 0.85vw, 12px); line-height: 1.6; letter-spacing: 0.04em; color: var(--muted); }
-.record b { font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 82%, #fff); margin-right: 8px; }
-
 .data {
   position: relative;
   display: grid;
@@ -201,31 +196,43 @@ html.no-gl .lineup { display: none; }
 /* ---------- Orbits ---------- */
 .orbit { position: relative; z-index: 10; height: 340vh; }
 .orbit-body { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
-.orbit-copy { display: flex; flex-direction: column; gap: 20px; min-width: 0; flex: 1 1 340px; }
-.orbit-copy .display.small { font-size: clamp(40px, 5.4vw, 84px); margin: 20px 0 0; max-width: 9ch; }
-.orbit-text { max-width: 40ch; color: var(--muted); font-size: 16px; line-height: 1.5; }
+.orbit-copy { display: flex; flex-direction: column; gap: 22px; min-width: 0; flex: 0 1 380px; }
+.orbit-copy .display.small { font-size: clamp(36px, 4.6vw, 72px); margin: 8px 0 0; max-width: 9ch; }
+.orbit-text { max-width: 36ch; color: var(--muted); font-size: 15px; line-height: 1.5; }
 .clock b { display: block; margin-top: 8px; font-family: var(--figure); font-weight: 300; font-size: clamp(56px, 8vw, 120px); line-height: 1; letter-spacing: -0.03em; color: var(--sun); font-variant-numeric: tabular-nums; }
-.laps { list-style: none; max-width: 300px; border-top: 1px solid var(--rule); }
+.laps { list-style: none; max-width: 280px; border-top: 1px solid var(--rule); }
 .laps li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-weight: 300; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
 .laps li b { font-weight: 400; color: var(--text); }
-.orbit-view { flex: none; width: min(50vw, 80vh); aspect-ratio: 1; }
+.orbit-view { flex: none; width: min(54vw, 84vh); aspect-ratio: 1; }
+#orb-lines { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }   /* under the GL layer, so rings never cross a planet or text */
 #orb { display: block; width: 100%; height: 100%; }
 
-/* ---------- Method ---------- */
-.method { z-index: 10; }
-.method .bar { opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); }
-.method-body { max-width: 640px; opacity: clamp(0, calc(1.7 - var(--ap) * 2.4), 1); translate: 0 calc(var(--p) * 9vh); }
+/* ---------- Notes: small annotations with a leader to what they describe ---------- */
+#notes { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+.note { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; }
+.note svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+.note .ln { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1; }
+.note .dot { fill: #fff; }
+.note .ping { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 1; transform-box: fill-box; transform-origin: center; }
+.note .txt { position: absolute; width: 238px; }
+.note .tag { display: block; margin-bottom: 6px; color: color-mix(in srgb, var(--acc) 82%, #fff); font-family: var(--mono); font-weight: 400; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+.note p { font-family: var(--display); font-weight: 400; font-size: 15px; line-height: 1.42; color: #D2D2CC; }
+.note.l .txt { text-align: right; }
+
+/* ---------- End: footer and the method footnote ---------- */
+.end { position: relative; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; padding: 56px var(--pad-x) 72px; border-top: 1px solid var(--rule); }
+.foot-btn, .mp-close { background: none; border: 0; cursor: pointer; padding: 0; }
+.foot-btn:hover, .mp-close:hover { color: var(--text); }
+.method-pop { position: fixed; right: var(--pad-x); bottom: 56px; z-index: 30; width: min(400px, calc(100vw - 2 * var(--pad-x))); max-height: 70vh; overflow: auto; padding: 18px 20px 6px; background: #121214; border: 1px solid var(--rule); }
+.method-pop[hidden] { display: none; }
+.method-pop { animation: pop .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes pop { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+.mp-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
+.method-pop li { list-style: none; font-size: 13px; line-height: 1.5; color: #C4C4BE; padding: 9px 0; border-top: 1px solid var(--rule); }
+.method-pop li b { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sun); }
+.method-pop li a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule); }
+.method-pop li a:hover { text-decoration-color: var(--text); }
 .display.small { font-size: clamp(56px, 8vw, 120px); margin-bottom: 32px; }
-.method li {
-  list-style: none;
-  font-size: 20px;
-  line-height: 30px;
-  padding: 12px 0;
-  border-top: 1px solid var(--rule);
-}
-.method li b { font-family: var(--mono); font-weight: 400; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sun); }
-.method li a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule); }
-.method li a:hover { text-decoration-color: var(--text); }
 
 /* ---------- Distance rail (fixed): Sun to Neptune on one honest linear scale ---------- */
 .rail {
@@ -268,10 +275,9 @@ html.no-gl .lineup { display: none; }
 @media (max-width: 760px) {
   :root { --nm: min(14vw, 15vh); }
   .links { display: none; }
+  .stack { padding-bottom: 76px; }          /* room under the name for its note */
   .planet .data { --cols: 3; row-gap: 14px; }
   .planet .data dd { font-size: 20px; gap: 5px; flex-wrap: wrap; }
-  .record { display: none; }
-  .lore { margin-top: 12px; }
   .stats { gap: 28px; }
   .lu-label span { display: none; }
   .lu-cap, .lu-note { display: none; }

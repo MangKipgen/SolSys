@@ -47,10 +47,6 @@ PLANETS.forEach((p, i) => {
         <h2 class="name" aria-label="${p.name}"><span class="fit" aria-hidden="true">${
           [...p.name].map((c, k) => `<span class="ch" style="--i:${k}">${c}</span>`).join('')
         }</span></h2>
-        <div class="lore">
-          <p class="tidbit">${p.tidbit}</p>
-          <p class="record"><b>Record</b> ${p.record}</p>
-        </div>
       </div>
       <dl class="data">
         ${cell('Diameter', valueHTML(p.diameter))}
@@ -151,54 +147,133 @@ const sections = [...document.querySelectorAll('.planet')].map((el) => ({
   sy: 0, sd: 160, big: 400, k: 0, ax: 0, ny: 0, nw: 600
 }));
 sections.forEach((s) => s.nums.forEach(prepNum));
-const methodSec = { el: document.getElementById('method'), p: 99, target: 99, top: 0, height: 1 };
 const stage = { top: 0, height: 1, s: 99, target: 99, nums: [...stageEl.querySelectorAll('.num')] };
 stage.nums.forEach(prepNum);
 const orbitEl = document.getElementById('orbit');
 const orbit = { top: 0, height: 1, o: 99, target: 0, on: false };
 
-function applyMethod(sec, p) {
-  const st = sec.el.style;
-  st.setProperty('--p', p.toFixed(4));
-  st.setProperty('--ap', Math.abs(p).toFixed(4));
+/* ---------- Notes: a tidbit and a record per planet, each with a leader to what it describes ---------- */
+const notesEl = document.createElement('div');
+notesEl.id = 'notes';
+notesEl.setAttribute('aria-hidden', 'true');
+document.body.appendChild(notesEl);
+const SVGNS = 'http://www.w3.org/2000/svg';
+function makeNote(sec, p, kind) {
+  const el = document.createElement('div');
+  el.className = 'note ' + (p[kind + 'At'].side || 'r');
+  el.style.setProperty('--acc', p.accent);
+  el.innerHTML = `<svg><polyline class="ln" pathLength="1" stroke-dasharray="1" points="0,0 0,0"/><circle class="ping" r="3"/><circle class="dot" r="2.5"/></svg>
+    <div class="txt"><span class="tag">${kind === 'tidbit' ? 'Note' : 'Record'}</span><p>${p[kind]}</p></div>`;
+  notesEl.appendChild(el);
+  return { el, kind, at: p[kind + 'At'], ln: el.querySelector('.ln'), dot: el.querySelector('.dot'), ping: el.querySelector('.ping'), txt: el.querySelector('.txt'), v: 0 };
+}
+sections.forEach((sec, i) => { sec.notes = [makeNote(sec, PLANETS[i], 'tidbit'), makeNote(sec, PLANETS[i], 'record')]; });
+
+/* Where a note's leader lands on the planet, given its centre c, radius R and axis direction. */
+function anchorFor(at, p, cx, cy, R, wantSide) {
+  const t = (p.tilt * Math.PI) / 180, e = (p.elev * Math.PI) / 180;
+  const ux = -Math.sin(t) * Math.cos(e), uy = -Math.cos(t) * Math.cos(e);        // axis direction on screen (y down)
+  if (at.type === 'axis') {
+    let sgn = 1;
+    if (Math.abs(ux) > 0.3) sgn = Math.sign(ux) === wantSide ? 1 : -1; else sgn = uy < 0 ? 1 : -1;
+    return [cx + ux * sgn * R * 1.26, cy + uy * sgn * R * 1.26];
+  }
+  if (at.type === 'ring') {
+    let sgn = Math.sign(-uy) === wantSide ? 1 : -1;                                // the ring's long axis is across the spin axis
+    return [cx + -uy * sgn * R * 2.1, cy + ux * sgn * R * 2.1];
+  }
+  if (at.type === 'limb') {
+    const a = (at.a * Math.PI) / 180;
+    return [cx + Math.cos(a) * R * 0.97, cy - Math.sin(a) * R * 0.97];
+  }
+  return [cx + at.x * R, cy + at.y * R];
+}
+
+function updateNotes() {
+  const W = window.innerWidth;
+  const mobile = W < 760;
+  sections.forEach((sec, i) => {
+    sec.notes.forEach((n) => {
+      const on = sec.near && sec.q !== 99 && n.v > 0.002 && !(mobile && n.kind === 'record');
+      n.el.style.display = on ? '' : 'none';
+      if (!on) return;
+      const p = PLANETS[i];
+      const r = sec.body.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = r.width / 2;
+      const side = n.at.side === 'l' ? -1 : 1;
+      const [ax, ay] = anchorFor(n.at, p, cx, cy, R, side);
+      const reach = p.ring ? 2.3 : 1.55;
+      const ex = cx + side * (R * reach + 40);
+      const ey = cy + (n.kind === 'tidbit' ? -0.38 : 0.52) * R;
+      const room = side > 0 ? W - 24 - (ex + 10) : ex - 10 - 24;
+      const w = clamp(room, 140, 238);
+      let drift = n.kind === 'tidbit' ? -(sec.q - 0.5) * 40 : -(sec.q - 0.66) * 90;     // drifts upward as you scroll: always in motion
+      n.el.style.opacity = clamp(n.v * 1.6, 0, 1).toFixed(3);
+      if (mobile) {                                                                   // narrow screens: the note sits under the name, no leader
+        n.ln.setAttribute('points', '0,0 0,0');
+        n.dot.setAttribute('r', 0); n.ping.setAttribute('r', 0);
+        const ny = sec.nameBottom + 10 + drift * 0.3;
+        n.txt.style.cssText = `left:20px;width:${W - 40}px;top:${ny}px;text-align:center`;
+        return;
+      }
+      const L = clamp((n.v - 0.05) / 0.7, 0, 1);                                      // the leader draws out first, then the text
+      const pts = `${ax.toFixed(1)},${ay.toFixed(1)} ${(ex - side * 30).toFixed(1)},${(ey + drift).toFixed(1)} ${ex.toFixed(1)},${(ey + drift).toFixed(1)}`;
+      n.ln.setAttribute('points', pts);
+      n.ln.style.strokeDashoffset = (1 - L).toFixed(3);
+      n.dot.setAttribute('cx', ax); n.dot.setAttribute('cy', ay); n.dot.setAttribute('r', 2.5 * clamp(n.v * 3, 0, 1));
+      n.ping.setAttribute('cx', ax); n.ping.setAttribute('cy', ay);
+      const pk = (performance.now() / 1600 + i * 0.37) % 1;                           // a slow ping keeps the anchor alive
+      n.ping.setAttribute('r', (3 + pk * 9).toFixed(2));
+      n.ping.style.opacity = ((1 - pk) * clamp(n.v * 2, 0, 1)).toFixed(3);
+      const tx = side > 0 ? ex + 10 : ex - 10 - w;
+      n.txt.style.width = w + 'px';
+      const txtOp = clamp((n.v - 0.35) / 0.5, 0, 1);
+      n.txt.style.cssText = `width:${w}px;left:${tx.toFixed(1)}px;top:${(ey + drift - 8 + (1 - txtOp) * 10).toFixed(1)}px;opacity:${txtOp.toFixed(3)}`;
+    });
+  });
 }
 
 /* The chapter timeline. q -> where the planet and the name are, and what has appeared.
-   The name starts large BEHIND the planet, a little toward the top, so only its outer
-   letters show. As you scroll the planet shrinks up into its slot while the name scales
-   down and slides to its place beneath it; then the tilt, tidbit, data and numbers arrive. */
+   The name arrives first: large, near the top, with the planet's upper edge just tucked under
+   its lower third. The planet then rises and shrinks into its slot, passing in front of the name,
+   while the name scales down and slides to its place beneath. The note leaders, data and numbers
+   come in after, the record note drifts through, and the name keeps a slow drift going. */
 function applyChapter(sec, q) {
   const st = sec.el.style;
   const W = window.innerWidth, H = window.innerHeight;
-  const k = smooth(clamp((q - 0.08) / 0.30, 0, 1));          // planet shrinks and moves into its slot
+  const k = smooth(clamp((q - 0.06) / 0.34, 0, 1));          // planet rises and shrinks into its slot
   sec.k = k;
   const d = sec.big + (sec.sd - sec.big) * k;
+  const py0 = H * 0.36 + sec.big / 2;                           // start: the planet's top edge sits at 36% of the screen, under the name's lower third
   sec.disc.style.width = d.toFixed(1) + 'px';
-  sec.disc.style.top = (H / 2 + (sec.sy - H / 2) * k).toFixed(1) + 'px';
+  sec.disc.style.top = (py0 + (sec.sy - py0) * k).toFixed(1) + 'px';
 
-  // the name: starts big and behind the planet, settles into its end position
-  const e = smooth(clamp((q - 0.12) / 0.34, 0, 1));
+  // the name: big and high at the start, settling to its end position, then a slow drift
+  const e = smooth(clamp((q - 0.10) / 0.32, 0, 1));
   const left = 1 - e;
   const s0 = clamp((W * 0.98) / sec.nw, 1.35, 2.4);
-  const y0 = H / 2 - sec.big * 0.14;                            // centre of the name at the start: a little above the planet's centre
-  sec.name.style.translate = `0 ${((y0 - sec.ny) * left).toFixed(1)}px`;
-  sec.name.style.scale = (1 + (s0 - 1) * left).toFixed(4);
+  const y0 = H * 0.27;
+  const drift = (q - 0.42) * W * -0.022 * e;
+  sec.name.style.translate = `${drift.toFixed(1)}px ${((y0 - sec.ny) * left).toFixed(1)}px`;
+  sec.name.style.scale = ((1 + (s0 - 1) * left) * (1 + 0.035 * (q - 0.42) * e)).toFixed(4);
   const mid = (sec.letters.length - 1) / 2;
-  sec.letters.forEach((ch, i) => {                              // letters start a little apart and close up
-    ch.style.translate = `${((i - mid) * 0.09 * left).toFixed(3)}em 0`;
+  sec.letters.forEach((ch, i) => {                              // letters start apart, close up, then ripple very slightly
+    const wave = Math.sin(q * 9 + i * 0.8) * 0.014 * e;
+    ch.style.translate = `${((i - mid) * 0.09 * left).toFixed(3)}em ${wave.toFixed(4)}em`;
   });
+  sec.nameBottom = sec.ny + sec.name.offsetHeight / 2;
 
-  st.setProperty('--c', smooth(clamp((q - 0.20) / 0.30, 0, 1)).toFixed(3));        // name: white -> planet colour
-  st.setProperty('--tv', smooth(clamp((q - 0.40) / 0.14, 0, 1)).toFixed(3));       // tilt caption
-  st.setProperty('--lv', smooth(clamp((q - 0.48) / 0.16, 0, 1)).toFixed(3));       // tidbit and record
-  st.setProperty('--dv', smooth(clamp((q - 0.54) / 0.14, 0, 1)).toFixed(3));       // data row
-  st.setProperty('--rl', smooth(clamp((q - 0.54) / 0.20, 0, 1)).toFixed(3));       // its rule draws in
+  st.setProperty('--c', smooth(clamp((q - 0.14) / 0.30, 0, 1)).toFixed(3));        // name: white -> planet colour
+  st.setProperty('--tv', smooth(clamp((q - 0.34) / 0.14, 0, 1)).toFixed(3));       // tilt caption
+  st.setProperty('--dv', smooth(clamp((q - 0.46) / 0.16, 0, 1)).toFixed(3));       // data cells arrive one by one
+  st.setProperty('--rl', smooth(clamp((q - 0.46) / 0.18, 0, 1)).toFixed(3));       // the rule draws in
   st.setProperty('--ro', '0%');
-  sec.ax = smooth(clamp((q - 0.40) / 0.14, 0, 1));                                  // axis line on the planet
+  sec.ax = smooth(clamp((q - 0.34) / 0.14, 0, 1));                                  // axis line on the planet
+  sec.notes[0].v = smooth(clamp((q - 0.42) / 0.20, 0, 1));                          // tidbit note
+  sec.notes[1].v = smooth(clamp((q - 0.66) / 0.20, 0, 1));                          // record note, a passing aside
 
-  // numbers count up the first time the data arrives, and then hold
-  // staggered: each cell starts a little after the last, so the data is still moving as the scene settles
-  sec.nums.forEach((el, j) => setNum(el, smooth(clamp((q - 0.58 - j * 0.03) / 0.26, 0, 1))));
+  // numbers start counting just after their cell has appeared, one after another
+  sec.nums.forEach((el, j) => setNum(el, smooth(clamp((q - 0.54 - j * 0.03) / 0.30, 0, 1))));
 }
 
 /* Lineup geometry. One ruler for every planet: world x is measured from the Sun's edge in px at
@@ -292,15 +367,12 @@ function measure() {
     // the slot is the room left between the bar and the name; the planet shrinks to fit it
     const pr = s.pin.getBoundingClientRect(), sr = s.slot.getBoundingClientRect();
     const lab = s.tilt.offsetHeight + 10;
-    s.sd = clamp((sr.height - lab) / 1.3, 90, Math.min(H * 0.36, 380));      // room left over for the axis line past each pole
+    s.sd = clamp((sr.height - lab) / 1.3, 90, Math.min(H * 0.42, 420));      // room left over for the axis line past each pole
     s.sy = sr.top - pr.top + (sr.height - lab) / 2;
     s.big = Math.min(H * 0.78, (W * 0.92) / (s.el.classList.contains('ringed') ? 2.45 : 1));
     s.ny = s.name.offsetTop + s.name.offsetHeight / 2;           // offsets ignore transforms, so this is the name's end position
     s.nw = s.name.querySelector('.fit').offsetWidth;
   });
-  const mr = methodSec.el.getBoundingClientRect();
-  methodSec.top = mr.top + window.scrollY;
-  methodSec.height = mr.height;
   const r = stageEl.getBoundingClientRect();
   stage.top = r.top + window.scrollY;
   stage.height = r.height;
@@ -310,10 +382,6 @@ function measure() {
 }
 function chapterTarget(sec) {
   return clamp((window.scrollY - sec.top) / Math.max(1, sec.height - window.innerHeight), 0, 1);
-}
-function methodTarget(sec) {
-  const mid = window.scrollY + window.innerHeight / 2;
-  return (sec.top + sec.height / 2 - mid) / window.innerHeight;
 }
 function stageTarget() {
   return clamp((window.scrollY - stage.top) / Math.max(1, stage.height - window.innerHeight), 0, 1);
@@ -578,7 +646,8 @@ void main() {
   float dist = max(rr - 1.0, 0.0) * R;
   float ang = atan(d.y, d.x);
   float streak = 0.7 + 0.5 * noise(vec3(cos(ang) * 2.0, sin(ang) * 2.0, t * 0.08));
-  float g = exp(-dist / 120.0) * 0.6 * streak;
+  float cs = uS.w > 0.0 ? uS.w : 1.0;
+  float g = exp(-dist / (120.0 * cs)) * 0.6 * streak;
   vec4 o = vec4(col + vec3(1.0, 0.74, 0.14) * g * (1.0 - a), max(a, g * 0.9 * (1.0 - a)));
   oc = o * uS.x;
 }`;
@@ -798,7 +867,7 @@ function initGL() {
       gl.uniform2f(un.uView, W, H);
       gl.uniform4f(un.uRect, W / 2, H / 2, W / 2, H / 2);
       gl.uniform3f(un.uC, orbitNow.sun.cx, orbitNow.sun.cy, orbitNow.sun.R);
-      gl.uniform4f(un.uS, 1, idle, spinBase * 0.4, 0);
+      gl.uniform4f(un.uS, 1, idle, spinBase * 0.4, 0.3);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       gl.useProgram(planetProg);
       gl.uniform2f(up.uView, W, H);
@@ -822,6 +891,13 @@ const phase0 = PLANETS.map((p, i) => i * 2.1 + 0.6);
 lapsEl.innerHTML = PLANETS.map((p) => `<li><span>${p.name}</span><b data-lap>0.0</b></li>`).join('');
 const lapNodes = [...lapsEl.querySelectorAll('[data-lap]')];
 let orbitSize = 0;
+// rings and trails live on their own canvas UNDER the GL layer, so they never cross a planet; the labels stay on #orb, above it
+const linesCanvas = document.createElement('canvas');
+linesCanvas.id = 'orb-lines';
+linesCanvas.setAttribute('aria-hidden', 'true');
+document.body.prepend(linesCanvas);
+const linesCtx = linesCanvas.getContext('2d');
+let linesWas = false;
 function sizeOrbit() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const r = orbCanvas.getBoundingClientRect();
@@ -829,48 +905,85 @@ function sizeOrbit() {
   orbCanvas.width = Math.round(r.width * dpr);
   orbCanvas.height = Math.round(r.height * dpr);
   orbCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  linesCanvas.width = Math.round(window.innerWidth * dpr);
+  linesCanvas.height = Math.round(window.innerHeight * dpr);
+  linesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+const orbitRadius = (p, R0) => (0.12 + 0.88 * Math.pow(p.mkm / MAX_KM, 0.3)) * R0;    // compressed so the inner planets stay apart
 function drawOrbit(years) {
   const r = orbCanvas.getBoundingClientRect();
-  const S = r.width, cx = S / 2, R0 = S / 2 - 62;
-  const scale = S / 640;
+  const S = r.width, cx = S / 2, R0 = S / 2 - 58;
+  const scale = S / 700;
+  const ox = r.left + cx, oy = r.top + cx;
   orbCtx.clearRect(0, 0, S, S);
-  orbCtx.font = `300 ${Math.max(9, 10 * Math.min(1, scale + 0.2))}px "Martian Mono", monospace`;
-  orbCtx.textBaseline = 'middle';
-  const sunR = Math.max(9, 16 * scale);
-  orbitNow.sun = { cx: r.left + cx, cy: r.top + cx, R: sunR };
+  linesCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  linesWas = true;
+  const sunR = Math.max(8, 14 * scale);
+  orbitNow.sun = { cx: ox, cy: oy, R: sunR };
   orbitNow.planets = [];
-  PLANETS.forEach((p, i) => {
-    const rad = (0.1 + 0.9 * Math.sqrt(p.mkm / MAX_KM)) * R0;
-    orbCtx.strokeStyle = '#2A2A2B';
-    orbCtx.lineWidth = 1;
-    orbCtx.beginPath(); orbCtx.arc(cx, cx, rad, 0, 6.2832); orbCtx.stroke();
+
+  const pos = PLANETS.map((p, i) => {
+    const rad = orbitRadius(p, R0);
     const a = phase0[i] + 6.2832 * years / PERIOD[i];
-    const x = cx + Math.cos(a) * rad, y = cx + Math.sin(a) * rad;
-    const pr = (2.5 + 7 * Math.sqrt(p.r)) * Math.max(0.8, scale);
-    // a short trail behind the planet, in its own colour
-    orbCtx.strokeStyle = p.accent + '66';
-    orbCtx.lineWidth = 2;
-    orbCtx.beginPath(); orbCtx.arc(cx, cx, rad, a - Math.min(0.5, 14 / rad * 3), a); orbCtx.stroke();
-    // lit from the Sun at the centre
-    const dx = x - cx, dy = y - cx, n = Math.hypot(dx, dy) || 1;
+    return { rad, a, x: cx + Math.cos(a) * rad, y: cx + Math.sin(a) * rad, pr: (2.4 + 6.2 * Math.sqrt(p.r)) * Math.max(0.8, scale) };
+  });
+
+  // rings and trails: thin and quiet, drawn on the layer beneath the planets
+  PLANETS.forEach((p, i) => {
+    const q = pos[i];
+    linesCtx.strokeStyle = 'rgba(255,255,255,0.11)';
+    linesCtx.lineWidth = 1;
+    linesCtx.beginPath(); linesCtx.arc(ox, oy, q.rad, 0, 6.2832); linesCtx.stroke();
+    linesCtx.strokeStyle = p.accent + 'AA';
+    linesCtx.lineWidth = 1.6;
+    linesCtx.lineCap = 'round';
+    linesCtx.beginPath(); linesCtx.arc(ox, oy, q.rad, q.a - Math.min(0.55, 46 / q.rad), q.a); linesCtx.stroke();
+  });
+
+  // planets, lit from the Sun at the centre
+  pos.forEach((q, i) => {
+    const dx = q.x - cx, dy = q.y - cx, n = Math.hypot(dx, dy) || 1;
     const L = [-dx / n, dy / n, 0.35];
     const ln = Math.hypot(L[0], L[1], L[2]);
-    orbitNow.planets.push({ x: r.left + x, y: r.top + y, R: pr, L: [L[0] / ln, L[1] / ln, L[2] / ln] });
-    const lx = x + Math.cos(a) * (pr * (p.ring ? 2.4 : 1) + 8), ly = y + Math.sin(a) * (pr * (p.ring ? 2.4 : 1) + 8);
-    orbCtx.fillStyle = '#9A9A94';
-    orbCtx.textAlign = Math.cos(a) >= 0 ? 'left' : 'right';
-    orbCtx.fillText(p.name.toUpperCase(), lx, ly);
+    orbitNow.planets.push({ x: r.left + q.x, y: r.top + q.y, R: q.pr, L: [L[0] / ln, L[1] / ln, L[2] / ln] });
     if (!glLayer) {                                           // flat stand-ins when WebGL is unavailable
-      orbCtx.fillStyle = p.accent;
-      orbCtx.beginPath(); orbCtx.arc(x, y, pr, 0, 6.2832); orbCtx.fill();
+      orbCtx.fillStyle = PLANETS[i].accent;
+      orbCtx.beginPath(); orbCtx.arc(q.x, q.y, q.pr, 0, 6.2832); orbCtx.fill();
     }
   });
-  if (!glLayer) {
-    orbCtx.fillStyle = SUN;
-    orbCtx.beginPath(); orbCtx.arc(cx, cx, sunR, 0, 6.2832); orbCtx.fill();
+  if (!glLayer) { orbCtx.fillStyle = SUN; orbCtx.beginPath(); orbCtx.arc(cx, cx, sunR, 0, 6.2832); orbCtx.fill(); }
+
+  // labels, placed outermost first; a label that would collide with another steps aside or is skipped
+  const fs = Math.max(9, Math.min(11, 10.5 * Math.min(1.1, scale + 0.15)));
+  orbCtx.font = `400 ${fs}px "Martian Mono", monospace`;
+  orbCtx.textBaseline = 'middle';
+  orbCtx.lineJoin = 'round';
+  const placed = [];
+  const hit = (b) => placed.some((o) => b.x < o.x + o.w + 4 && b.x + b.w + 4 > o.x && b.y < o.y + o.h + 2 && b.y + b.h + 2 > o.y);
+  for (let i = PLANETS.length - 1; i >= 0; i--) {
+    const q = pos[i], p = PLANETS[i];
+    const txt = p.name.toUpperCase();
+    const w = orbCtx.measureText(txt).width, h = fs + 2;
+    const ca = Math.cos(q.a), sa = Math.sin(q.a);
+    const off0 = q.pr * (p.ring ? 2.3 : 1) + 9;
+    let box = null, tx = 0, ty = 0, al = 'left';
+    for (const off of [off0, off0 + 14, -off0 - 2]) {
+      const px = q.x + ca * off, py = q.y + sa * off;
+      al = ca * Math.sign(off) >= 0 ? 'left' : 'right';
+      const b = { x: al === 'left' ? px : px - w, y: py - h / 2, w, h };
+      if (!hit(b) && b.x > -4 && b.x + b.w < S + 4) { box = b; tx = px; ty = py; break; }
+    }
+    if (!box) continue;
+    placed.push(box);
+    orbCtx.textAlign = al;
+    orbCtx.strokeStyle = 'rgba(11,11,12,0.9)';
+    orbCtx.lineWidth = 3.5;
+    orbCtx.strokeText(txt, tx, ty);
+    orbCtx.fillStyle = '#C9C9C2';
+    orbCtx.fillText(txt, tx, ty);
   }
 }
+function clearOrbitLines() { if (linesWas) { linesCtx.clearRect(0, 0, window.innerWidth, window.innerHeight); linesWas = false; } }
 
 /* ---------- Main loop ---------- */
 const motion = { lastY: window.scrollY, vel: 0, blur: 0 };
@@ -895,16 +1008,6 @@ function frame(now) {
     s.q = Math.abs(s.target - next) < 0.0004 ? s.target : next;
     if (changed && (s.near || first)) applyChapter(s, s.q);
   });
-  {
-    const m = methodSec;
-    m.target = methodTarget(m);
-    const first = m.p === 99;
-    const next = first || reduceMotion ? m.target : m.p + (m.target - m.p) * 0.16;
-    const changed = first || Math.abs(next - m.p) > 0.00005 || Math.abs(m.target - next) > 0.0004;
-    m.p = Math.abs(m.target - next) < 0.0004 ? m.target : next;
-    if (changed && (Math.abs(m.p) < 1.5 || first)) applyMethod(m, reduceMotion ? 0 : m.p);
-  }
-
   stage.target = stageTarget();
   const sFirst = stage.s === 99;
   const sNext = sFirst ? stage.target : stage.s + (stage.target - stage.s) * 0.14;
@@ -920,6 +1023,7 @@ function frame(now) {
   const orr = orbitEl.getBoundingClientRect();
   orbit.on = orr.height > 0 && orr.bottom > -H * 0.2 && orr.top < H * 1.2;
   orbitNow.on = orbit.on;
+  if (!orbit.on) clearOrbitLines();
   if (orbit.on) {
     orbit.target = orbitTarget();
     orbit.o = orbit.o === 99 ? orbit.target : orbit.o + (orbit.target - orbit.o) * 0.08;
@@ -929,6 +1033,7 @@ function frame(now) {
     lapNodes.forEach((n, i) => { n.textContent = (yrs / PERIOD[i]).toFixed(1); });
   }
 
+  updateNotes();
   updateRail();
   if (glLayer) glLayer.draw(t, y * 0.000128 + (reduceMotion ? 0 : t * 0.0018), motion.blur);
   requestAnimationFrame(frame);
@@ -938,7 +1043,6 @@ function layout() {
   layoutLineup();
   sizeOrbit();
   sections.forEach((s) => { s.q = 99; });
-  methodSec.p = 99;
   stage.s = 99;
 }
 layout();
@@ -952,3 +1056,11 @@ requestAnimationFrame(frame);
 
 // title rises in once on load
 requestAnimationFrame(() => requestAnimationFrame(() => stageEl.classList.add('in')));
+
+/* ---------- Method: a footnote popup ---------- */
+const methodPop = document.getElementById('method');
+const toggleMethod = (open) => { methodPop.hidden = !open; };
+document.getElementById('method-open').addEventListener('click', () => toggleMethod(methodPop.hidden));
+methodPop.querySelector('.mp-close').addEventListener('click', () => toggleMethod(false));
+document.querySelectorAll('[data-method]').forEach((a) => a.addEventListener('click', (ev) => { ev.preventDefault(); toggleMethod(true); }));
+window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') toggleMethod(false); });
