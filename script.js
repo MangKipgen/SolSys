@@ -32,6 +32,7 @@ PLANETS.forEach((p, i) => {
   const n = i + 1;
   const s = document.createElement('section');
   s.className = 'planet' + (p.ring ? ' ringed' : '');
+  s.style.height = (150 + 60 * p.facts.length) + 'vh';        // room for every fact to take its turn: 270vh for two, 330vh for three
   s.id = p.name.toLowerCase();
   s.style.setProperty('--accent', p.accent);
   let ci = 0;
@@ -158,16 +159,18 @@ notesEl.id = 'notes';
 notesEl.setAttribute('aria-hidden', 'true');
 document.body.appendChild(notesEl);
 const SVGNS = 'http://www.w3.org/2000/svg';
-function makeNote(sec, p, kind) {
+function makeNote(sec, p, f, idx, count) {
+  const side = f.side || (idx % 2 ? 'l' : 'r');
+  const pin = !!f.at;
   const el = document.createElement('div');
-  el.className = 'note ' + (p[kind + 'At'].side || 'r');
+  el.className = 'note ' + side;
   el.style.setProperty('--acc', p.accent);
-  el.innerHTML = `<svg><polyline class="ln" pathLength="1" stroke-dasharray="1" points="0,0 0,0"/><circle class="ping" r="3"/><circle class="dot" r="2.5"/></svg>
-    <div class="txt"><span class="tag">${kind === 'tidbit' ? 'Note' : 'Record'}</span><p>${p[kind]}</p></div>`;
+  el.innerHTML = (pin ? '<svg><polyline class="ln" pathLength="1" stroke-dasharray="1" points="0,0 0,0"/><circle class="ping" r="3"/><circle class="dot" r="2.5"/></svg>' : '') +
+    `<div class="txt"><span class="tag"><i>${pad(idx + 1)}/${pad(count)}</i> ${f.title}</span><p>${f.text.replace(/ (°C|km\/h|km|g\/cm³)/g, '\u00a0$1')}</p></div>`;
   notesEl.appendChild(el);
-  return { el, kind, at: p[kind + 'At'], ln: el.querySelector('.ln'), dot: el.querySelector('.dot'), ping: el.querySelector('.ping'), txt: el.querySelector('.txt'), v: 0 };
+  return { el, side, pin, at: f.at, idx, a: 0, ln: el.querySelector('.ln'), dot: el.querySelector('.dot'), ping: el.querySelector('.ping'), txt: el.querySelector('.txt'), v: 0 };
 }
-sections.forEach((sec, i) => { sec.notes = [makeNote(sec, PLANETS[i], 'tidbit'), makeNote(sec, PLANETS[i], 'record')]; });
+sections.forEach((sec, i) => { const fs = PLANETS[i].facts; sec.notes = fs.map((f, k) => makeNote(sec, PLANETS[i], f, k, fs.length)); });
 
 /* Where a note's leader lands on the planet, given its centre c, radius R and axis direction. */
 function anchorFor(at, p, cx, cy, R, wantSide) {
@@ -193,42 +196,43 @@ function updateNotes() {
   const W = window.innerWidth;
   const mobile = W < 760;
   sections.forEach((sec, i) => {
+    const lead = sec.notes.reduce((best, n) => (n.v > best.v ? n : best), sec.notes[0]);
     sec.notes.forEach((n) => {
-      const on = sec.near && sec.q !== 99 && n.v > 0.002 && !(mobile && n.kind === 'record');
+      const on = sec.near && sec.q !== 99 && n.v > 0.002 && !(mobile && n !== lead);
       n.el.style.display = on ? '' : 'none';
       if (!on) return;
       const p = PLANETS[i];
       const r = sec.body.getBoundingClientRect();
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = r.width / 2;
-      const side = n.at.side === 'l' ? -1 : 1;
-      const [ax, ay] = anchorFor(n.at, p, cx, cy, R, side);
-      const reach = p.ring ? 2.3 : 1.55;
+      const side = n.side === 'l' ? -1 : 1;
+      const reach = p.ring ? 1.95 : 1.55;
       const ex = cx + side * (R * reach + 40);
-      const ey = cy + (n.kind === 'tidbit' ? -0.38 : 0.52) * R;
+      const ey = cy - 0.3 * R;
       const room = side > 0 ? W - 24 - (ex + 10) : ex - 10 - 24;
-      const w = clamp(room, 140, 238);
-      let drift = n.kind === 'tidbit' ? -(sec.q - 0.5) * 40 : -(sec.q - 0.66) * 90;     // drifts upward as you scroll: always in motion
+      const w = clamp(room, 140, 392);
+      const drift = -(sec.q - 0.68) * 60;                                              // drifts upward as you scroll: always in motion
       n.el.style.opacity = clamp(n.v * 1.6, 0, 1).toFixed(3);
-      if (mobile) {                                                                   // narrow screens: the note sits under the name, no leader
-        n.ln.setAttribute('points', '0,0 0,0');
-        n.dot.setAttribute('r', 0); n.ping.setAttribute('r', 0);
+      if (mobile) {                                                                   // narrow screens: the fact sits under the name, no leader
+        if (n.pin) { n.ln.setAttribute('points', '0,0 0,0'); n.dot.setAttribute('r', 0); n.ping.setAttribute('r', 0); }
         const ny = sec.nameBottom + 10 + drift * 0.3;
-        n.txt.style.cssText = `left:20px;width:${W - 40}px;top:${ny}px;text-align:center`;
+        n.txt.style.cssText = `--fs:20px;left:20px;width:${W - 40}px;top:${ny}px;text-align:center`;
         return;
       }
-      const L = clamp((n.v - 0.05) / 0.7, 0, 1);                                      // the leader draws out first, then the text
-      const pts = `${ax.toFixed(1)},${ay.toFixed(1)} ${(ex - side * 30).toFixed(1)},${(ey + drift).toFixed(1)} ${ex.toFixed(1)},${(ey + drift).toFixed(1)}`;
-      n.ln.setAttribute('points', pts);
-      n.ln.style.strokeDashoffset = (1 - L).toFixed(3);
-      n.dot.setAttribute('cx', ax); n.dot.setAttribute('cy', ay); n.dot.setAttribute('r', 2.5 * clamp(n.v * 3, 0, 1));
-      n.ping.setAttribute('cx', ax); n.ping.setAttribute('cy', ay);
-      const pk = (performance.now() / 1600 + i * 0.37) % 1;                           // a slow ping keeps the anchor alive
-      n.ping.setAttribute('r', (3 + pk * 9).toFixed(2));
-      n.ping.style.opacity = ((1 - pk) * clamp(n.v * 2, 0, 1)).toFixed(3);
+      const txtOp = clamp((n.v - 0.35) / 0.5, 0, 1);                                  // text fades in after the leader draws, and out before it retracts
+      if (n.pin) {
+        const [ax, ay] = anchorFor(n.at, p, cx, cy, R, side);
+        const L = clamp((n.v - 0.05) / 0.7, 0, 1);
+        const pts = `${ax.toFixed(1)},${ay.toFixed(1)} ${(ex - side * 30).toFixed(1)},${(ey + drift).toFixed(1)} ${ex.toFixed(1)},${(ey + drift).toFixed(1)}`;
+        n.ln.setAttribute('points', pts);
+        n.ln.style.strokeDashoffset = (1 - L).toFixed(3);
+        n.dot.setAttribute('cx', ax); n.dot.setAttribute('cy', ay); n.dot.setAttribute('r', 2.5 * clamp(n.v * 3, 0, 1));
+        n.ping.setAttribute('cx', ax); n.ping.setAttribute('cy', ay);
+        const pk = (performance.now() / 1600 + i * 0.37) % 1;                         // a slow ping keeps the anchor alive
+        n.ping.setAttribute('r', (3 + pk * 9).toFixed(2));
+        n.ping.style.opacity = ((1 - pk) * clamp(n.v * 2, 0, 1)).toFixed(3);
+      }
       const tx = side > 0 ? ex + 10 : ex - 10 - w;
-      n.txt.style.width = w + 'px';
-      const txtOp = clamp((n.v - 0.35) / 0.5, 0, 1);
-      n.txt.style.cssText = `width:${w}px;left:${tx.toFixed(1)}px;top:${(ey + drift - 8 + (1 - txtOp) * 10).toFixed(1)}px;opacity:${txtOp.toFixed(3)}`;
+      n.txt.style.cssText = `--fs:${clamp(w / 13, 18, 30).toFixed(1)}px;width:${w}px;left:${tx.toFixed(1)}px;top:${(ey + drift - 8 + (1 - txtOp) * 10).toFixed(1)}px;opacity:${txtOp.toFixed(3)}`;
     });
   });
 }
@@ -269,8 +273,15 @@ function applyChapter(sec, q) {
   st.setProperty('--rl', smooth(clamp((q - 0.46) / 0.18, 0, 1)).toFixed(3));       // the rule draws in
   st.setProperty('--ro', '0%');
   sec.ax = smooth(clamp((q - 0.34) / 0.14, 0, 1));                                  // axis line on the planet
-  sec.notes[0].v = smooth(clamp((q - 0.42) / 0.20, 0, 1));                          // tidbit note
-  sec.notes[1].v = smooth(clamp((q - 0.66) / 0.20, 0, 1));                          // record note, a passing aside
+  // facts take the stage in turn, never more than two at once. Each rises in, holds, then leaves the way it came.
+  const nf = sec.notes.length, D = 0.24, step = nf > 1 ? (0.92 - 0.44 - D) / (nf - 1) : 0;
+  sec.notes.forEach((n, k) => {
+    const a = 0.44 + k * step;
+    n.a = a;
+    n.v = Math.min(smooth(clamp((q - a) / 0.10, 0, 1)), 1 - smooth(clamp((q - (a + D - 0.08)) / 0.08, 0, 1)));
+  });
+  // the name steps back while the facts perform, and returns for the close
+  sec.name.style.opacity = (1 - 0.6 * smooth(clamp((q - 0.40) / 0.08, 0, 1)) + 0.6 * smooth(clamp((q - 0.92) / 0.08, 0, 1))).toFixed(3);
 
   // numbers start counting just after their cell has appeared, one after another
   sec.nums.forEach((el, j) => setNum(el, smooth(clamp((q - 0.54 - j * 0.03) / 0.30, 0, 1))));
