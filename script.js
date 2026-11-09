@@ -108,9 +108,7 @@ const luSun = (() => {
   lineupEl.appendChild(el);
   return el;
 })();
-const luCap = lineupEl.querySelector('.lu-cap');
 const luNote = lineupEl.querySelector('.lu-note');
-luCap.textContent = 'Inner planets enlarged about 3.6× in this view. Scroll back for true scale.';
 
 /* ---------- Numbers count up once and stay ---------- */
 const numFmt = new WeakMap();
@@ -178,13 +176,16 @@ function makeNote(sec, p, f, idx, count) {
 sections.forEach((sec, i) => { const fs = PLANETS[i].facts; sec.notes = fs.map((f, k) => makeNote(sec, PLANETS[i], f, k, fs.length)); });
 
 /* Where a note's leader lands on the planet, given its centre c, radius R and axis direction. */
+const AXIS_GAP = 12;                                                              // px between the axis tick and the leader's dot
 function anchorFor(at, p, cx, cy, R, wantSide) {
   const t = (p.tilt * Math.PI) / 180, e = (p.elev * Math.PI) / 180;
   const ux = -Math.sin(t) * Math.cos(e), uy = -Math.cos(t) * Math.cos(e);        // axis direction on screen (y down)
-  if (at.type === 'axis') {
+  if (at.type === 'axis') {                                                        // same direction and length the shader draws, then a fixed gap past the end tick
+    const vx = -Math.sin(t), vy = -Math.cos(t);
     let sgn = 1;
-    if (Math.abs(ux) > 0.3) sgn = Math.sign(ux) === wantSide ? 1 : -1; else sgn = uy < 0 ? 1 : -1;
-    return [cx + ux * sgn * R * 1.26, cy + uy * sgn * R * 1.26];
+    if (Math.abs(vx) > 0.3) sgn = Math.sign(vx) === wantSide ? 1 : -1; else sgn = vy < 0 ? 1 : -1;
+    const dist = R * 1.26 + AXIS_GAP;
+    return [cx + vx * sgn * dist, cy + vy * sgn * dist];
   }
   if (at.type === 'ring') {
     let sgn = Math.sign(-uy) === wantSide ? 1 : -1;                                // the ring's long axis is across the spin axis
@@ -225,7 +226,8 @@ function updateNotes() {
       }
       const txtOp = clamp((n.v - 0.35) / 0.5, 0, 1);                                  // text fades in after the leader draws, and out before it retracts
       if (n.pin) {
-        const [ax, ay] = anchorFor(n.at, p, cx, cy, R, side);
+        const axis = n.at.type === 'axis';                                            // the planet is drawn with a slight mouse parallax; the axis leader follows it
+        const [ax, ay] = anchorFor(n.at, p, axis ? cx + mouse.x * -9 : cx, axis ? cy + mouse.y * -6 : cy, R, side);
         const L = clamp((n.v - 0.05) / 0.7, 0, 1);
         const pts = `${ax.toFixed(1)},${ay.toFixed(1)} ${(ex - side * 30).toFixed(1)},${(ey + drift).toFixed(1)} ${ex.toFixed(1)},${(ey + drift).toFixed(1)}`;
         n.ln.setAttribute('points', pts);
@@ -260,7 +262,9 @@ function applyChapter(sec, q) {
   // the name: big and high at the start, settling to its end position, then a slow drift
   const e = smooth(clamp((q - 0.10) / 0.32, 0, 1));
   const left = 1 - e;
-  const s0 = clamp((W * 0.98) / sec.nw, 1.35, 2.4);
+  const avail = W - 2 * clamp(W * 0.0333, 20, 48);                             // inside the page margins
+  const spread = (sec.letters.length - 1) * 0.09 * sec.nfs;                    // the letters start this much further apart
+  const s0 = Math.min(2.4, avail / (sec.nw + spread));
   const y0 = H * 0.27;
   const drift = (q - 0.42) * W * -0.022 * e;
   sec.name.style.translate = `${drift.toFixed(1)}px ${((y0 - sec.ny) * left).toFixed(1)}px`;
@@ -389,7 +393,6 @@ function applyStage(s) {
   });
   luSun.style.opacity = (fin * clamp((eS - 0.5) / 0.5, 0, 1) * exit).toFixed(3);
   luSun.style.transform = `translate(${(lu.sunEdge * 0.5).toFixed(1)}px, ${(rowY - 12).toFixed(1)}px) translateX(-50%)`;
-  luCap.style.opacity = (smooth(clamp((fin - 0.5) / 0.5, 0, 1)) * exit).toFixed(3);
   luNote.style.opacity = (clamp((Lp - 0.7) / 0.3, 0, 1) * (1 - fin) * exit).toFixed(3);
   const hi = Math.round(u), enl = (lu.Hd * (PLANETS[hi].ring ? 0.78 : 1)) / (lu.DJ * PLANETS[hi].r);
   const note = `${PLANETS[hi].name} · enlarged ${enl >= 9.5 ? Math.round(enl) : enl.toFixed(1)}× here, to show detail`;
@@ -411,6 +414,7 @@ function measure() {
     s.big = Math.min(H * 0.78, (W * 0.92) / (s.el.classList.contains('ringed') ? 2.45 : 1));
     s.ny = s.name.offsetTop + s.name.offsetHeight / 2;           // offsets ignore transforms, so this is the name's end position
     s.nw = s.name.querySelector('.fit').offsetWidth;
+    s.nfs = parseFloat(getComputedStyle(s.name.querySelector('.fit')).fontSize);
   });
   const r = stageEl.getBoundingClientRect();
   stage.top = r.top + window.scrollY;
@@ -1096,7 +1100,6 @@ requestAnimationFrame(() => requestAnimationFrame(() => stageEl.classList.add('i
 /* ---------- Method: a footnote popup ---------- */
 const methodPop = document.getElementById('method');
 const toggleMethod = (open) => { methodPop.hidden = !open; };
-document.getElementById('method-open').addEventListener('click', () => toggleMethod(methodPop.hidden));
 methodPop.querySelector('.mp-close').addEventListener('click', () => toggleMethod(false));
 document.querySelectorAll('[data-method]').forEach((a) => a.addEventListener('click', (ev) => { ev.preventDefault(); toggleMethod(true); }));
 window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') toggleMethod(false); });

@@ -94,7 +94,6 @@ html.gl .disc { visibility: hidden; }   /* the GL layer draws the planet; the bo
 html.no-gl .stage { height: 100vh; }
 html.no-gl .lineup { display: none; }
 
-.kicker { padding-bottom: 24px; }
 .headline {
   /* leaves as --out goes 0 -> 1 */
   opacity: calc(1 - var(--out, 0) * 1.15);
@@ -150,7 +149,6 @@ html.no-gl .lineup { display: none; }
 .lu-label b { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
 .lu-label span { font-family: var(--mono); font-weight: 300; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
 .lu-rule { display: block; width: 1px; background: var(--muted); transform-origin: 50% 0%; margin-bottom: 8px; }
-.lu-cap { position: absolute; right: var(--pad-x); bottom: 56px; opacity: 0; }
 .lu-note { position: absolute; left: var(--pad-x); top: 88px; opacity: 0; font-variant-numeric: tabular-nums; }
 .lu-sun b, .lu-sun span { color: #0B0B0C; }   /* sits on the Sun, so dark type */
 
@@ -225,8 +223,9 @@ html.no-gl .lineup { display: none; }
 
 /* ---------- End: footer and the method footnote ---------- */
 .end { position: relative; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; padding: 56px var(--pad-x) 72px; border-top: 1px solid var(--rule); }
-.foot-btn, .mp-close { background: none; border: 0; cursor: pointer; padding: 0; }
-.foot-btn:hover, .mp-close:hover { color: var(--text); }
+.end .cue { color: var(--sun); }
+.mp-close { background: none; border: 0; cursor: pointer; padding: 0; }
+.mp-close:hover { color: var(--text); }
 .method-pop { position: fixed; right: var(--pad-x); bottom: 56px; z-index: 30; width: min(400px, calc(100vw - 2 * var(--pad-x))); max-height: 70vh; overflow: auto; padding: 18px 20px 6px; background: #121214; border: 1px solid var(--rule); }
 .method-pop[hidden] { display: none; }
 .method-pop { animation: pop .35s cubic-bezier(.2,.8,.2,1); }
@@ -284,7 +283,7 @@ html.no-gl .lineup { display: none; }
   .planet .data dd { font-size: 20px; gap: 5px; flex-wrap: wrap; }
   .stats { gap: 28px; }
   .lu-label span { display: none; }
-  .lu-cap, .lu-note { display: none; }
+  .lu-note { display: none; }
   .rail-l { display: none; }
   .rail-r { min-width: 90px; }
   .orbit-body { position: static; flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; align-items: center; justify-content: center; gap: 12px; }
